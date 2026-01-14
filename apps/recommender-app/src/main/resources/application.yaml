@@ -1,0 +1,62 @@
+---
+main:
+  logback-config-file: "logback-local.xml"
+  application-id: "${APPLICATION_ID:-groceries-recommender}"
+  application-version: "${APPLICATION_VERSION:-_v1}"
+  create-topics: true
+  start-simulator: true
+  port: 8080
+topics:
+  name:
+    products: "groceries.products.v1"
+    orders: "groceries.orders.v1"
+    related-products: "groceries.related-products.v1"
+  create:
+    products:
+      partitions: 1
+      replication-factor: 1
+      configs:
+        cleanup.policy: "compact"
+        retention.ms: -1
+    orders:
+      partitions: 1
+      replication-factor: 1
+      configs:
+        cleanup.policy: "compact"
+        retention.ms: -1
+    related-products:
+      partitions: 1
+      replication-factor: 1
+      configs:
+        cleanup.policy: "compact"
+        retention.ms: -1
+kafka:
+  application.id: "${main.application-id}${main.application-version}"
+  bootstrap.servers: "${KAFKA_BOOTSTRAP_SERVERS:-localhost:19092}"
+  auto.offset.reset: "earliest"
+  enable.auto.commit: "false"
+  default.key.serde: "com.github.avrokotlin.avro4k.kafka.confluent.ReflectAvro4kKafkaSerde"
+  default.value.serde: "com.github.avrokotlin.avro4k.kafka.confluent.ReflectAvro4kKafkaSerde"
+  key.deserializer: "com.github.avrokotlin.avro4k.kafka.confluent.ReflectAvro4kKafkaDeserializer"
+  value.deserializer: "com.github.avrokotlin.avro4k.kafka.confluent.ReflectAvro4kKafkaDeserializer"
+  session.timeout.ms: "45000"
+  request.timeout.ms: "20000"
+  retry.backoff.ms: "500"
+  security.protocol: "${KAFKA_SECURITY_PROTOCOL:-PLAINTEXT}"
+  schema.registry.url: "${KAFKA_SCHEMA_REGISTRY_URL:-http://localhost:8081}"
+  schema.registry.basic.auth.user.info: ""
+  allow.auto.create.topics: "false"
+  specific.avro.reader: "true"
+  isolation.level: "read_uncommitted"
+  auto.register.schemas: "true"
+  acks: "1"
+  rocksdb.config.setter: "io.github.marcgoosen.groceries.shared.kafka.BoundedMemoryRocksDBConfig"
+  rocksdb.total_offheap_size_mb: "${ROCKSDB_TOTAL_OFF_HEAP_SIZE_MB:-16}"
+  rocksdb.total_memtable_mb: "${ROCKSDB_TOTAL_MEMTABLE_MB:-16}"
+  rocksdb.block_size_kb: "${ROCKSDB_BLOCK_SIZE_KB:-16}"
+  rocksdb.n_memtables: "${ROCKSDB_N_MEMTABLES:-2}"
+  rocksdb.memtable_size_mb: "${ROCKSDB_MEMTABLE_SIZE_MB:-64}"
+  commit.interval.ms: "${KAFKA_INTERVAL_MS:-100}"
+  polls.ms: "${KAFKA_POLL_MS:-100}"
+  topology.optimization: "all"
+  ensure.explicit.internal.resource.naming: "true"

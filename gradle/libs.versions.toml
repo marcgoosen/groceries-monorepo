@@ -1,0 +1,87 @@
+[versions]
+avro = "1.12.0"
+avro4k = "2.5.4"
+confluent-kafka = "8.0.0"
+faker = "1.16.0"
+gradle-versions-plugin = "0.51.0"
+hoplite = "2.7.5"
+janino = "3.1.12" # used by logback for conditional configuration
+java = "21"
+junit-jupiter = "5.11.3"
+kafka = "8.0.0-ccs"
+kafka-schema-registry-plugin = "2.4.0"
+kotest = "5.9.1"
+kotlin-core = "2.2.20"
+kotlin-gradle-plugin = "2.0.21"
+kotlin-logging = "7.0.0"
+kotlinx-coroutines = "1.10.1"
+kotlinx-datetime = "0.6.1"
+kotlinx-serialization = "1.8.0"
+kover = "0.9.1"
+ktor = "3.0.3"
+logback-classic = "1.5.16"
+logstashLogback = "8.0"
+micrometer = "1.14.4"
+mockk = "1.13.13"
+slf4j = "2.0.12"
+spotless = "8.0.0"
+test-containers = "1.20.4"
+
+[libraries]
+avro = { module = "org.apache.avro:avro", version.ref = "avro" }
+avro4k-core = { module = "com.github.avro-kotlin.avro4k:avro4k-core", version.ref = "avro4k" }
+avro4k-confluent-kafka-serializer = { module = "com.github.avro-kotlin.avro4k:avro4k-confluent-kafka-serializer", version.ref = "avro4k" }
+faker = { module = "io.github.serpro69:kotlin-faker", version.ref = "faker" }
+hoplite-core = { module = "com.sksamuel.hoplite:hoplite-core", version.ref = "hoplite" }
+hoplite-yaml = { module = "com.sksamuel.hoplite:hoplite-yaml", version.ref = "hoplite" }
+janino = { group = "org.codehaus.janino", name = "janino", version.ref = "janino" }
+junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit-jupiter" }
+kafka-avro-serializer = { module = "io.confluent:kafka-avro-serializer", version.ref = "confluent-kafka" }
+kafka-clients = { module = "org.apache.kafka:kafka-clients", version.ref = "kafka" }
+kafka-schema-registry-client = { module = "io.confluent:kafka-schema-registry-client", version.ref = "confluent-kafka" }
+kafka-streams = { module = "org.apache.kafka:kafka-streams", version.ref = "kafka" }
+kafka-streams-avro-serde = { module = "io.confluent:kafka-streams-avro-serde", version.ref = "confluent-kafka" }
+kafka-streams-test-utils = { module = "org.apache.kafka:kafka-streams-test-utils", version.ref = "kafka" }
+kotest-bom = { group = "io.kotest", name = "kotest-bom", version.ref = "kotest" }
+kotlin-bom = { group = "org.jetbrains.kotlin", name = "kotlin-bom", version.ref = "kotlin-core" }
+kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin-gradle-plugin" }
+kotlinx-coroutines-bom = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-bom", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+kotlinx-serialization-bom = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-bom", version.ref = "kotlinx-serialization" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+kotlinx-serialization-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "kotlinx-serialization" }
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin-core" }
+kotlin-logging = { module = "io.github.oshai:kotlin-logging", version.ref = "kotlin-logging" }
+ktor-bom = { group = "io.ktor", name = "ktor-bom", version.ref = "ktor" }
+ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
+ktor-server-metrics-micrometer = { group = "io.ktor", name = "ktor-server-metrics-micrometer", version.ref = "ktor" }
+ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }
+ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
+ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
+logback-classic = { group = "ch.qos.logback", name = "logback-classic", version.ref = "logback-classic" }
+logback-logstash-encoder = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstashLogback" }
+micrometer-core = { module = "io.micrometer:micrometer-core", version.ref = "micrometer" }
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+spotless = { group = "com.diffplug.spotless", name = "spotless-plugin-gradle", version.ref = "spotless" }
+slf4j = { group = "org.slf4j", name = "slf4j-api", version.ref = "slf4j" }
+test-containers-junit-jupiter = { group = "org.testcontainers", name = "junit-jupiter", version.ref = "test-containers" }
+test-containers-kafka = { group = "org.testcontainers", name = "kafka", version.ref = "test-containers" }
+
+[bundles]
+avro4k-serdes = ["avro", "avro4k-core", "avro4k-confluent-kafka-serializer"]
+logging = ["logback-classic", "logback-logstash-encoder", "janino", "slf4j"]
+test-containers = ["test-containers-junit-jupiter", "test-containers-kafka"]
+
+[plugins]
+gradle-versions = { id = "com.github.ben-manes.versions", version.ref = "gradle-versions-plugin" }
+kafka-schema-registry = { id = "com.github.imflog.kafka-schema-registry-gradle-plugin", version.ref = "kafka-schema-registry-plugin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin-core" }
+kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin-core" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+avro-kotlin = { id = "io.github.avro-kotlin", version.ref = "avro4k" }
+

@@ -1,0 +1,16 @@
+<configuration>
+    <statusListener class="ch.qos.logback.core.status.OnConsoleStatusListener"/>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{36} - %msg{}%replace( - %kvp){'^ - $',''}%n</pattern>
+            <charset>utf8</charset>
+        </encoder>
+    </appender>
+
+    <root level="info">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+    <logger name="io.github.marcgoosen.groceries" level="${APP_LOG_LEVEL:-debug}"/>
+    <logger name="org.apache.kafka" level="${KAFKA_LOG_LEVEL:-info}"/>
+    <logger name="io.ktor" level="${KTOR_LOG_LEVEL:-info}"/>
+</configuration>
