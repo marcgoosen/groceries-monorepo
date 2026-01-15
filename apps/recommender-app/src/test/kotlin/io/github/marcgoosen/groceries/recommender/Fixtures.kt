@@ -5,6 +5,9 @@ import io.github.marcgoosen.groceries.shared.domain.OrderLine
 import io.github.marcgoosen.groceries.shared.domain.Product
 import io.github.serpro69.kfaker.Faker
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+
+fun Instant.withoutMicroseconds() = Instant.fromEpochMilliseconds(toEpochMilliseconds())
 
 fun <T> Faker.randomList(maxSize: Int = 5, fn: () -> T) = (1..random.nextInt(1, maxSize)).map { fn() }
 
@@ -18,7 +21,7 @@ fun Faker.orderLine() = OrderLine(
 
 fun Faker.order() = Order(
     orderId = orderId(),
-    timestamp = Clock.System.now(),
+    timestamp = Clock.System.now().withoutMicroseconds(),
     orderLines = randomList { productId() }.distinct().map { orderLine().copy(productId = it) },
 )
 
