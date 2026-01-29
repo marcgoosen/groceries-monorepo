@@ -26,12 +26,6 @@ object Dependencies {
 
     val config by lazy {
         ConfigLoaderBuilder.default()
-            //            .addFileSource(
-            //
-            // "${Paths.get("").toAbsolutePath()}/apps/rtg-cycle-time/config/application-local.yaml",
-            //                optional = true,
-            //                allowEmpty = true,
-            //            )
             .addResourceSource("/application.yaml")
             .build()
             .loadConfigOrThrow<Config>()
