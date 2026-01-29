@@ -15,8 +15,8 @@ This project is a monorepo containing:
 ### Key Features
 
 - **Kotlin**: Uses Kotlin in functional style.
-- **Kafka Streams**: Uses advanced windowing and aggregation to find product relationships in real-time.
-- **Avro Serialization**: Uses `avro4k` to autmatically create schema from data classes.
+- **Kafka Streams**: Uses advanced aggregation to find product relationships in real-time.
+- **Avro Serialization**: Uses `avro4k` to automatically create schema from data classes.
 - **Hoplite Config**: Type-safe configuration via YAML and Environment Variables.
 - **Observability**: Built-in Prometheus metrics and health endpoints (`/health/liveness`, `/health/readiness`, `/prometheus`).
 
