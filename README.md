@@ -51,6 +51,16 @@ The application includes an integrated simulator that starts automatically if co
 ./gradlew :apps:recommender-app:run
 ```
 
+now go to Kafka UI on [http://localhost:9080/](http://localhost:9080/)
+and see the Related Products topic getting filled up.
+
+## Topics
+
+- **Products**: Static/Lookup data produced to `groceries.products.v1`.
+- **Orders**: Transactional stream on `groceries.orders.v1`.
+- **Related Products**: The output recommendations on `groceries.related-products.v1`.
+
+
 ## Configuration
 
 Configuration is managed in `apps/recommender-app/src/main/resources/application.yaml`.
@@ -59,12 +69,6 @@ Main toggles:
 
 - `main.create-topics`: Automatically create required Kafka topics on startup.
 - `main.start-simulator`: Start the background order generator.
-
-## Data Schema
-
-- **Products**: Static/Lookup data produced to `groceries.products.v1`.
-- **Orders**: Transactional stream on `groceries.orders.v1`.
-- **Related Products**: The output recommendations on `groceries.related-products.v1`.
 
 ## Still TODO
 - [ ] Github Actions
