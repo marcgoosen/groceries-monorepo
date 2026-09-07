@@ -2,7 +2,6 @@ package io.github.marcgoosen.groceries.recommender.kafkastreams
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import com.github.avrokotlin.avro4k.ExperimentalAvro4kApi
 import io.github.marcgoosen.groceries.recommender.domain.CoDistribution
 import io.github.marcgoosen.groceries.shared.domain.OrderId
 import org.apache.kafka.streams.TestInputTopic
@@ -12,8 +11,6 @@ import org.junit.jupiter.api.Test
 
 private const val INPUT_TOPIC = "input-distribution"
 private const val OUTPUT_TOPIC = "output-top-n"
-
-@OptIn(ExperimentalAvro4kApi::class)
 class SelectTopNTest : BaseTopologyTest() {
     private lateinit var inputTopic: TestInputTopic<OrderId, CoDistribution>
     private lateinit var outputTopic: TestOutputTopic<OrderId, CoDistribution>

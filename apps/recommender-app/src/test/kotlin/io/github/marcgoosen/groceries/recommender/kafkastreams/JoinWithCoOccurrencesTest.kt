@@ -2,7 +2,6 @@ package io.github.marcgoosen.groceries.recommender.kafkastreams
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import com.github.avrokotlin.avro4k.ExperimentalAvro4kApi
 import io.github.marcgoosen.groceries.recommender.domain.CoOccurrence
 import io.github.marcgoosen.groceries.recommender.domain.CoOccurrenceWithContext
 import io.github.marcgoosen.groceries.recommender.order
@@ -17,8 +16,6 @@ import org.junit.jupiter.api.Test
 private const val ORDER_INPUT_TOPIC = "input-orders"
 private const val CO_OCCURRENCE_INPUT_TOPIC = "input-co-occurrences"
 private const val OUTPUT_TOPIC = "output-joined"
-
-@OptIn(ExperimentalAvro4kApi::class)
 class JoinWithCoOccurrencesTest : BaseTopologyTest() {
     private lateinit var orderInputTopic: TestInputTopic<ProductId, Order>
     private lateinit var coOccurrenceInputTopic: TestInputTopic<ProductId, CoOccurrence>

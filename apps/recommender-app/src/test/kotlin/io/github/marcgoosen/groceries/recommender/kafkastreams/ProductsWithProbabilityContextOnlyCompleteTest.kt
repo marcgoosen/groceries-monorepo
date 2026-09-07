@@ -2,7 +2,6 @@ package io.github.marcgoosen.groceries.recommender.kafkastreams
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import com.github.avrokotlin.avro4k.ExperimentalAvro4kApi
 import io.github.marcgoosen.groceries.recommender.domain.ProductWithProbability
 import io.github.marcgoosen.groceries.recommender.domain.ProductsWithProbabilityContext
 import io.github.marcgoosen.groceries.shared.domain.OrderId
@@ -14,8 +13,6 @@ import org.junit.jupiter.api.Test
 
 private const val INPUT_TOPIC = "input-products-context"
 private const val OUTPUT_TOPIC = "output-products-complete"
-
-@OptIn(ExperimentalAvro4kApi::class)
 class ProductsWithProbabilityContextOnlyCompleteTest : BaseTopologyTest() {
     private lateinit var inputTopic: TestInputTopic<OrderId, ProductsWithProbabilityContext>
     private lateinit var outputTopic: TestOutputTopic<OrderId, ProductsWithProbabilityContext>

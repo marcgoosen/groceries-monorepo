@@ -12,7 +12,6 @@ import org.apache.kafka.streams.StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG
 import org.apache.kafka.streams.StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG
 import org.apache.kafka.streams.TopologyTestDriver
 import org.junit.jupiter.api.AfterEach
-
 @OptIn(ExperimentalAvro4kApi::class)
 abstract class BaseTopologyTest {
     protected val faker = Faker()

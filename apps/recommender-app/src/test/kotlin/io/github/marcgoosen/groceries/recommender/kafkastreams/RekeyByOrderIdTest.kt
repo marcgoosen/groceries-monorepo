@@ -2,7 +2,6 @@ package io.github.marcgoosen.groceries.recommender.kafkastreams
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import com.github.avrokotlin.avro4k.ExperimentalAvro4kApi
 import io.github.marcgoosen.groceries.recommender.domain.CoOccurrence
 import io.github.marcgoosen.groceries.recommender.domain.CoOccurrenceWithContext
 import io.github.marcgoosen.groceries.recommender.order
@@ -16,8 +15,6 @@ import org.junit.jupiter.api.Test
 
 private const val INPUT_TOPIC = "input-context"
 private const val OUTPUT_TOPIC = "output-rekeyed"
-
-@OptIn(ExperimentalAvro4kApi::class)
 class RekeyByOrderIdTest : BaseTopologyTest() {
     private lateinit var inputTopic: TestInputTopic<ProductId, CoOccurrenceWithContext>
     private lateinit var outputTopic: TestOutputTopic<OrderId, CoOccurrenceWithContext>
