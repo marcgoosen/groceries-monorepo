@@ -74,8 +74,7 @@ fun ProductIdStream.countAlsoBought(storeName: String = ALSO_BOUGHT): AlsoBought
         Materialized.`as`(storeName),
     )
 
-@JvmName("OrderStreamExplodeByProductIds")
-fun OrderStream.explodeByProductId(): OrderByProductIdStream = this
+fun OrderStream.explodeOrderByProductId(): OrderByProductIdStream = this
     .flatMap(
         { _, order ->
             order.productIds.map {
@@ -88,7 +87,7 @@ fun OrderStream.explodeByProductId(): OrderByProductIdStream = this
         Named.`as`(ORDER_BY_PRODUCT_ID),
     )
 
-fun OrderByProductIdStream.joinWithAlsoBought(
+fun OrderByProductIdStream.joinWithAlsoBoughtCounts(
     alsoBoughtTable: KTable<ProductId, AlsoBoughtCount>,
     storeName: String = ALSO_BOUGHT_COUNT_WITH_ORDER_BY_PRODUCT_ID,
 ): AlsoBoughtCountWithOrderByProductIdStream = this

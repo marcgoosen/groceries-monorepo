@@ -32,8 +32,8 @@ class TopologyBuilder(val streamsBuilder: StreamsBuilder, private val topicNameB
             .countAlsoBought()
     }
 
-    fun OrderByProductIdStream.joinWithAlsoBought() = this
-        .joinWithAlsoBought(
+    fun OrderByProductIdStream.joinWithAlsoBoughtCounts() = this
+        .joinWithAlsoBoughtCounts(
             alsoBoughtTable,
         )
 
@@ -47,8 +47,8 @@ class TopologyBuilder(val streamsBuilder: StreamsBuilder, private val topicNameB
 
     fun build(): Topology = build {
         orderStream
-            .explodeByProductId()
-            .joinWithAlsoBought()
+            .explodeOrderByProductId()
+            .joinWithAlsoBoughtCounts()
             .rekeyByOrderId()
             .collectPerOrder()
             .onlyComplete()

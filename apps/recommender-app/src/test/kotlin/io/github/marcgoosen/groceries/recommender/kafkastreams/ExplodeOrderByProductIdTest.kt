@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test
 private const val INPUT_TOPIC = "input-orders"
 private const val OUTPUT_TOPIC = "output-exploded"
 
-class OrderStreamExplodeByProductIdTest : BaseTopologyTest() {
+class ExplodeOrderByProductIdTest : BaseTopologyTest() {
     private lateinit var inputTopic: TestInputTopic<OrderId, Order>
     private lateinit var outputTopic: TestOutputTopic<ProductId, Order>
 
@@ -24,7 +24,7 @@ class OrderStreamExplodeByProductIdTest : BaseTopologyTest() {
     fun onSetup() {
         setup {
             streamsBuilder.stream<OrderId, Order>(INPUT_TOPIC)
-                .explodeByProductId()
+                .explodeOrderByProductId()
                 .to(OUTPUT_TOPIC)
         }
 

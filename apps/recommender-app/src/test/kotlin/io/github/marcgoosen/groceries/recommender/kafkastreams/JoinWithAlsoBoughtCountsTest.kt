@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test
 private const val ORDER_INPUT_TOPIC = "input-orders"
 private const val ALSO_BOUGHT_INPUT_TOPIC = "input-also-bought"
 private const val OUTPUT_TOPIC = "output-joined"
-class JoinWithAlsoBoughtTest : BaseTopologyTest() {
+class JoinWithAlsoBoughtCountsTest : BaseTopologyTest() {
     private lateinit var orderInputTopic: TestInputTopic<ProductId, Order>
     private lateinit var alsoBoughtInputTopic: TestInputTopic<ProductId, AlsoBoughtCount>
     private lateinit var outputTopic: TestOutputTopic<ProductId, AlsoBoughtCountWithOrder>
@@ -27,7 +27,7 @@ class JoinWithAlsoBoughtTest : BaseTopologyTest() {
             val alsoBoughtTable = streamsBuilder.table<ProductId, AlsoBoughtCount>(ALSO_BOUGHT_INPUT_TOPIC)
 
             streamsBuilder.stream<ProductId, Order>(ORDER_INPUT_TOPIC)
-                .joinWithAlsoBought(alsoBoughtTable)
+                .joinWithAlsoBoughtCounts(alsoBoughtTable)
                 .to(OUTPUT_TOPIC)
         }
 

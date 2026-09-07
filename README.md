@@ -23,9 +23,9 @@ flowchart TD
     ORDERS([groceries.orders.v1]) --> PAIRS["toProductPairs()<br/>every ordered pair of products"]
     PAIRS --> COUNT["countAlsoBought()<br/>KTable: productId → counts"]
 
-    ORDERS --> EXPLODE["explodeByProductId()<br/>one record per ordered product"]
+    ORDERS --> EXPLODE["explodeOrderByProductId()<br/>one record per ordered product"]
     COUNT -.->|left join| JOIN
-    EXPLODE --> JOIN["joinWithAlsoBought()<br/>attach what is bought with it"]
+    EXPLODE --> JOIN["joinWithAlsoBoughtCounts()<br/>attach what is bought with it"]
     JOIN --> REKEY["rekeyByOrderId()"]
     REKEY --> COLLECT["collectPerOrder()<br/>aggregate back per order"]
     COLLECT --> COMPLETE["onlyComplete()<br/>wait for every ordered product"]
