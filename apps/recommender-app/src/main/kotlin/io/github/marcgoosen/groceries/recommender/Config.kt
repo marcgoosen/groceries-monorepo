@@ -1,6 +1,13 @@
 package io.github.marcgoosen.groceries.recommender
 
+import com.sksamuel.hoplite.ConfigLoaderBuilder
+import com.sksamuel.hoplite.addResourceSource
 import kotlinx.serialization.Serializable
+
+fun loadConfig(resource: String = "/application.yaml"): Config = ConfigLoaderBuilder.default()
+    .addResourceSource(resource)
+    .build()
+    .loadConfigOrThrow<Config>()
 
 @Serializable
 data class Config(val main: MainConfig, val kafka: Map<String, String>, val topics: Topics) {
