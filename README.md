@@ -1,78 +1,150 @@
-# Groceries Monorepo - Kotlin Kafka Streams
+# Groceries Monorepo — Kotlin Kafka Streams
 
-A real-time groceries recommendation engine built with Kotlin and Kafka Streams. It processes a stream of orders to find co-occurring products and generates "related products" suggestions.
+A real-time groceries recommendation engine built with Kotlin and Kafka Streams. It processes a stream of orders to
+find co-occurring products and produces "related products" suggestions per order.
 
 ## Architecture
 
-This project is a monorepo containing:
+- **apps/recommender-app** — the application:
+  - **Sales simulator**: generates products and a continuous stream of orders (Avro).
+  - **Recommendation pipeline**: the Kafka Streams topology below.
+  - **HTTP**: Ktor endpoints for health (`/health/liveness`, `/health/readiness`) and metrics (`/prometheus`).
+- **libs/shared** — domain models shared across apps, the Avro `Instant` serializer and a bounded-memory RocksDB
+  config setter.
 
-- **apps/recommender-app**: The main application which handles:
-  - **Sales Simulator**: Generates random product data and customer orders (Avro).
-  - **Recommendation Pipeline**: A Kafka Streams topology that calculates co-occurrences and produces recommendations.
-  - **REST API**: Ktor-based endpoints for health checks and Prometheus metrics.
-- **libs/shared**: Shared utilities and domain models.
+### The topology
 
-### Key Features
+Each stream operator lives as its own extension function in
+[`kafkastreams/Extensions.kt`](apps/recommender-app/src/main/kotlin/io/github/marcgoosen/groceries/recommender/kafkastreams/Extensions.kt),
+so the pipeline in `TopologyBuilder.build()` reads as the diagram below and every operator is tested on its own.
 
-- **Kotlin**: Uses Kotlin in functional style.
-- **Kafka Streams**: Uses advanced aggregation to find product relationships in real-time.
-- **Avro Serialization**: Uses `avro4k` to automatically create schema from data classes.
-- **Hoplite Config**: Type-safe configuration via YAML and Environment Variables.
-- **Observability**: Built-in Prometheus metrics and health endpoints (`/health/liveness`, `/health/readiness`, `/prometheus`).
+```mermaid
+flowchart TD
+    ORDERS([groceries.orders.v1]) --> PAIRS["toCoOccurrencePairs()<br/>every ordered pair of products"]
+    PAIRS --> COUNT["countCoOccurrences()<br/>KTable: productId → counts"]
+
+    ORDERS --> EXPLODE["explodeByProductId()<br/>one record per ordered product"]
+    COUNT -.->|left join| JOIN
+    EXPLODE --> JOIN["joinWithCoOccurrences()<br/>attach what co-occurs with it"]
+    JOIN --> REKEY["rekeyByOrderId()"]
+    REKEY --> COLLECT["collectPerOrder()<br/>aggregate back per order"]
+    COLLECT --> COMPLETE["onlyComplete()<br/>wait for every ordered product"]
+    COMPLETE --> ROLLUP["rollupToCoOccurrence()<br/>sum, minus what was ordered"]
+    ROLLUP --> DIST["toCoDistribution()<br/>counts → probabilities"]
+    DIST --> TOPN["selectTopN(3)"]
+    TOPN --> EXPLODE2["explodeByProductId()<br/>one record per candidate"]
+
+    PRODUCTS([groceries.products.v1]) -.->|left join| JOIN2
+    EXPLODE2 --> JOIN2["joinWithProduct()<br/>attach the product itself"]
+    JOIN2 --> COLLECT2["collectPerOrder()"]
+    COLLECT2 --> COMPLETE2["onlyComplete()"]
+    COMPLETE2 --> CLEAN["removeEmpty()<br/>drop unresolved products"]
+    CLEAN --> OUT([groceries.related-products.v1])
+```
+
+The shape worth noting is the **fan-out / fan-in** that happens twice: an order is exploded into one record per
+product so it can be joined against a `KTable` keyed by product, then re-keyed and aggregated back. Because a Kafka
+Streams aggregation emits on *every* update, the aggregate carries the number of records it is still waiting for, and
+`onlyComplete()` filters out the partial emissions. See [Design decisions](#design-decisions-and-trade-offs).
 
 ## Prerequisites
 
-- **JDK 21**
+- **JDK 21** — the Gradle daemon is pinned to it via `gradle/gradle-daemon-jvm.properties`, and Gradle provisions it
+  automatically if it isn't installed. A newer JDK as your default is fine.
 - **Docker & Docker Compose**
 
-## Getting Started
+## Getting started
 
-### 1. Start Infrastructure
-
-Initialize the Kafka cluster and Schema Registry:
+### 1. Start the infrastructure
 
 ```bash
 docker compose down -v && docker compose up -d
 ```
 
-You can view the Kafka UI at [http://localhost:9080](http://localhost:9080).
+Kafka UI is at [http://localhost:9080](http://localhost:9080).
 
-### 2. Build and Test
+### 2. Build, check and test
 
 ```bash
 ./gradlew build
 ```
 
-### 3. Run the Application
+This runs ktlint (via Spotless), the test suite, and the Kover coverage gate.
 
-The application includes an integrated simulator that starts automatically if configured.
+### 3. Run the application
 
 ```bash
 ./gradlew :apps:recommender-app:run
 ```
 
-now go to Kafka UI on [http://localhost:9080/](http://localhost:9080/)
-and see the Related Products topic getting filled up.
+The `run` task sets `MAIN_CREATE_TOPICS`, `MAIN_START_SIMULATOR` and local logging for you, so the app creates its
+topics and starts producing orders. Watch `groceries.related-products.v1` fill up in Kafka UI.
 
 ## Topics
 
-- **Products**: Static/Lookup data produced to `groceries.products.v1`.
-- **Orders**: Transactional stream on `groceries.orders.v1`.
-- **Related Products**: The output recommendations on `groceries.related-products.v1`.
-
+| Topic | Contents |
+| --- | --- |
+| `groceries.products.v1` | Product catalogue (compacted lookup data) |
+| `groceries.orders.v1` | The order stream |
+| `groceries.related-products.v1` | Recommendations, keyed by order |
 
 ## Configuration
 
-Configuration is managed in `apps/recommender-app/src/main/resources/application.yaml`.
+[`application.yaml`](apps/recommender-app/src/main/resources/application.yaml) holds the defaults; everything
+deployment-specific is an environment variable. Defaults are the safe ones — the simulator and topic creation are
+**off** unless switched on.
 
-Main toggles:
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `KAFKA_BOOTSTRAP_SERVERS` | `localhost:19092` | Broker list |
+| `KAFKA_SCHEMA_REGISTRY_URL` | `http://localhost:8081` | Schema Registry |
+| `KAFKA_SCHEMA_REGISTRY_AUTH` | *(empty)* | Schema Registry basic auth, as `key:secret` |
+| `KAFKA_SECURITY_PROTOCOL` | `PLAINTEXT` | Broker security protocol |
+| `MAIN_CREATE_TOPICS` | `false` | Create the configured topics on startup |
+| `MAIN_START_SIMULATOR` | `false` | Run the in-process order generator |
+| `LOGBACK_CONFIG_FILE` | `logback.xml` | `logback-local.xml` gives human-readable logs |
+| `PORT` | `8080` | HTTP port |
+| `ROCKSDB_*` | see yaml | Bounds on RocksDB off-heap and memtable memory |
 
-- `main.create-topics`: Automatically create required Kafka topics on startup.
-- `main.start-simulator`: Start the background order generator.
+Credentials are masked before the resolved configuration is logged at startup.
 
-## Still TODO
-- [ ] Github Actions
-- [ ] Docker Image Creation
-- [ ] Kubernetes setup using Kustomize
-- [ ] Extract Simulator to its own app
-- [ ] Separate Kafka Initializer app, that creates shared topics and create/updates shared schema's and fails early when incompatible
+## Design decisions and trade-offs
+
+**Completeness is tracked in the payload, not with windows.** Both fan-in aggregations emit on every update, so a
+downstream consumer would otherwise see partial recommendations. Rather than a window with an arbitrary grace period,
+each aggregate carries the count it expects (`CoOccurrencesWithContext` compares against the order's product count;
+`ProductsWithProbabilityContext` carries `expectedSize`) and `onlyComplete()` passes only the final emission. The
+trade-off: it is exact and needs no timers, but it depends on every fan-out record arriving — a permanently lost
+record leaves an aggregate that never completes.
+
+**Co-occurrence state is unbounded.** `countCoOccurrences()` keeps a `KTable` of product → co-occurring product
+counts that grows with the catalogue and never expires. For a fixed catalogue this is what you want; for a long-lived
+deployment it needs either a windowed variant or periodic tombstoning, and the RocksDB bounds in
+`BoundedMemoryRocksDBConfig` only cap memory, not disk.
+
+**Identifiers are typealiases, not value classes.** `ProductId` and `OrderId` name the types in signatures but are
+`String` at compile time, so the compiler will not catch swapping one for the other. Value classes would, but avro4k
+does not handle them cleanly across the serde and Schema Registry path, and wire compatibility wins here.
+
+**At-least-once, not exactly-once.** No `processing.guarantee` is set, so a rebalance can re-emit recommendations for
+an order. The output topic is compacted and keyed by order, so a duplicate overwrites rather than accumulates.
+Turning on `exactly_once_v2` is a one-line change with a real latency cost.
+
+**Local topics are single-partition.** Both joins require co-partitioned inputs. With one partition everywhere that
+is trivially true locally; a real deployment must give `orders`, `products` and the repartition topics the same
+partition count.
+
+**No dead-letter path.** A record that fails to deserialize will kill the stream thread rather than being diverted. A
+`DeserializationExceptionHandler` plus a DLQ topic is the obvious next step.
+
+## Not included yet
+
+- Docker image and Kubernetes manifests
+- Testcontainers integration test against a real broker and Schema Registry
+- The simulator extracted into its own app
+- A separate Kafka initializer that owns shared topics and schemas, failing early on incompatible changes
+- `KafkaStreams` state listener and uncaught-exception handler wired to the health endpoints
+
+## License
+
+[MIT](LICENSE)
