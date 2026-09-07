@@ -33,6 +33,9 @@ fun main(): Unit = with(Dependencies) {
     }
 
     logger.info { topology.describe() }
+
+    // Pods are ephemeral and hold no persistent volume, so there is never local state worth keeping across a restart.
+    streams.cleanUp()
     streams.start()
 
     val engine =
