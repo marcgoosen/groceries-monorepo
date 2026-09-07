@@ -1,4 +1,4 @@
-# WHY?
+# Why?
 
 <!-- Why is this change needed? The problem, the motivation or the ticket behind it — not the implementation. -->
 

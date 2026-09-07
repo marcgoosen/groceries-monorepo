@@ -4,7 +4,7 @@ Reusable code-style, testing, and working-style guidance for Kotlin projects. Ad
 
 ## Pull requests
 
-Every PR follows the template at [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md). Fill in the WHY?, Changes, and Testing sections and tick the checklist before requesting review. The PR always opens with **WHY?** — the motivation, not the implementation.
+Every PR follows the template at [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md). Fill in the Why?, Changes, and Testing sections and tick the checklist before requesting review. The PR always opens with **Why?** — the motivation, not the implementation.
 
 Commit messages **and** PR titles follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification — e.g. `feat: add sliding window strategy`, `fix(core): correct epsilon transition compilation`, `chore: bump kafka-streams to 3.9.0`.
 
