@@ -11,9 +11,9 @@ import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
 /**
- * One product's co-occurrences carried together with the order that triggered the lookup.
+ * One product's also-bought carried together with the order that triggered the lookup.
  */
-class CoOccurrenceWithContextTest {
+class AlsoBoughtCountWithOrderTest {
     private val json = Json { prettyPrint = true }
 
     private val order = Order(
@@ -22,7 +22,7 @@ class CoOccurrenceWithContextTest {
         timestamp = Instant.parse("2026-01-15T09:30:00.123Z"),
     )
 
-    private val context = CoOccurrenceWithContext(CoOccurrence(mapOf("p3" to 4)), order)
+    private val context = AlsoBoughtCountWithOrder(AlsoBoughtCount(mapOf("p3" to 4)), order)
 
     @Test
     fun `It should serialize a populated context to JSON and read it back`() {
@@ -33,7 +33,7 @@ class CoOccurrenceWithContextTest {
         assertThat(serialized).isEqualTo(
             """
             {
-                "coOccurrence": {
+                "alsoBought": {
                     "countsByProduct": {
                         "p3": 4
                     }
@@ -57,19 +57,21 @@ class CoOccurrenceWithContextTest {
             }
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString<CoOccurrenceWithContext>(serialized)).isEqualTo(context)
+        assertThat(json.decodeFromString<AlsoBoughtCountWithOrder>(serialized)).isEqualTo(context)
     }
 
     @Test
     fun `It should serialize a populated context to Avro and read it back`() {
         // Given
         // When
-        val serialized = Avro.encodeToByteArray(CoOccurrenceWithContext.serializer(), context)
+        val serialized = Avro.encodeToByteArray(AlsoBoughtCountWithOrder.serializer(), context)
 
         assertThat(
             serialized.toHex(),
         ).isEqualTo("0204703308000e6f726465722d3104047031000000000000004002047032000000000000f83f0600f6a8ec8ff866")
-        assertThat(Avro.decodeFromByteArray(CoOccurrenceWithContext.serializer(), serialized)).isEqualTo(context)
+        assertThat(
+            Avro.decodeFromByteArray(AlsoBoughtCountWithOrder.serializer(), serialized),
+        ).isEqualTo(context)
     }
 }
 

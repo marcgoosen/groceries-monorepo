@@ -1,33 +1,33 @@
 package io.github.marcgoosen.groceries.recommender.kafkastreams
 
-import io.github.marcgoosen.groceries.recommender.CoDistributionStream
-import io.github.marcgoosen.groceries.recommender.CoOccurrenceStream
-import io.github.marcgoosen.groceries.recommender.CoOccurrenceTable
-import io.github.marcgoosen.groceries.recommender.CoOccurrenceWithContextByProductIdStream
-import io.github.marcgoosen.groceries.recommender.CoOccurrenceWithContextStream
-import io.github.marcgoosen.groceries.recommender.CoOccurrencesWithContextStream
+import io.github.marcgoosen.groceries.recommender.AlsoBoughtCountWithOrderByProductIdStream
+import io.github.marcgoosen.groceries.recommender.AlsoBoughtCountWithOrderStream
+import io.github.marcgoosen.groceries.recommender.AlsoBoughtProbabilitiesStream
+import io.github.marcgoosen.groceries.recommender.AlsoBoughtSoFarStream
+import io.github.marcgoosen.groceries.recommender.AlsoBoughtStream
+import io.github.marcgoosen.groceries.recommender.AlsoBoughtTable
 import io.github.marcgoosen.groceries.recommender.OrderByProductIdStream
 import io.github.marcgoosen.groceries.recommender.OrderStream
-import io.github.marcgoosen.groceries.recommender.ProbabilityContextStream
+import io.github.marcgoosen.groceries.recommender.ProbabilityWithOrderStream
 import io.github.marcgoosen.groceries.recommender.ProductIdStream
 import io.github.marcgoosen.groceries.recommender.ProductTable
-import io.github.marcgoosen.groceries.recommender.ProductWithProbabilityContextStream
-import io.github.marcgoosen.groceries.recommender.ProductsWithProbabilityContextStream
-import io.github.marcgoosen.groceries.recommender.ProductsWithProbabilityStream
+import io.github.marcgoosen.groceries.recommender.RelatedProductWithOrderStream
+import io.github.marcgoosen.groceries.recommender.RelatedProductsSoFarStream
+import io.github.marcgoosen.groceries.recommender.RelatedProductsStream
 import io.github.marcgoosen.groceries.recommender.allOrderedPairs
-import io.github.marcgoosen.groceries.recommender.domain.CoOccurrence
-import io.github.marcgoosen.groceries.recommender.domain.CoOccurrencesWithContext
-import io.github.marcgoosen.groceries.recommender.domain.ProbabilityContext
-import io.github.marcgoosen.groceries.recommender.domain.ProductsWithProbabilityContext
+import io.github.marcgoosen.groceries.recommender.domain.AlsoBoughtCount
+import io.github.marcgoosen.groceries.recommender.domain.AlsoBoughtSoFar
+import io.github.marcgoosen.groceries.recommender.domain.ProbabilityWithOrder
+import io.github.marcgoosen.groceries.recommender.domain.RelatedProductsSoFar
 import io.github.marcgoosen.groceries.recommender.domain.isComplete
 import io.github.marcgoosen.groceries.recommender.domain.orderId
 import io.github.marcgoosen.groceries.recommender.domain.plus
 import io.github.marcgoosen.groceries.recommender.domain.productIds
-import io.github.marcgoosen.groceries.recommender.domain.rollup
-import io.github.marcgoosen.groceries.recommender.domain.toCoDistribution
-import io.github.marcgoosen.groceries.recommender.domain.toProductsWithProbability
+import io.github.marcgoosen.groceries.recommender.domain.sum
+import io.github.marcgoosen.groceries.recommender.domain.toAlsoBoughtProbabilities
+import io.github.marcgoosen.groceries.recommender.domain.toRelatedProducts
 import io.github.marcgoosen.groceries.recommender.domain.topN
-import io.github.marcgoosen.groceries.recommender.domain.withContext
+import io.github.marcgoosen.groceries.recommender.domain.withOrder
 import io.github.marcgoosen.groceries.recommender.domain.withProduct
 import io.github.marcgoosen.groceries.shared.domain.Product
 import io.github.marcgoosen.groceries.shared.domain.ProductId
@@ -37,18 +37,19 @@ import org.apache.kafka.streams.kstream.KTable
 import org.apache.kafka.streams.kstream.Materialized
 import org.apache.kafka.streams.kstream.Named
 
-internal const val CO_OCCURRENCE = "co-occurrence"
-internal const val CO_OCCURRENCE_WITH_CONTEXT_BY_PRODUCT_ID = "co-occurrence-with-context-by-product-id"
-internal const val CO_OCCURRENCE_WITH_CONTEXT = "co-occurrence-with-context"
-internal const val CO_OCCURRENCES_WITH_CONTEXT = "co-occurrences-with-context"
-internal const val PRODUCTS_WITH_PROBABILITY_CONTEXT = "products-with-probability-context"
+internal const val ALSO_BOUGHT = "also-bought"
+internal const val ALSO_BOUGHT_COUNT_WITH_ORDER_BY_PRODUCT_ID =
+    "also-bought-count-with-order-by-product-id"
+internal const val ALSO_BOUGHT_COUNT_WITH_ORDER = "also-bought-count-with-order"
+internal const val ALSO_BOUGHT_SO_FAR = "also-bought-so-far"
+internal const val RELATED_PRODUCTS_SO_FAR = "related-products-so-far"
 internal const val ORDER_BY_PRODUCT_ID = "order-by-product-id"
 internal const val PRODUCT_ID = "product-id"
-internal const val PROBABILITY_CONTEXT = "probability-context"
-internal const val PRODUCT_WITH_PROBABILITY_CONTEXT = "product-with-probability-context"
+internal const val PROBABILITY_WITH_ORDER = "probability-with-order"
+internal const val RELATED_PRODUCT_WITH_ORDER = "related-product-with-order"
 internal const val PRODUCT = "product"
 
-fun OrderStream.toCoOccurrencePairs(): ProductIdStream = this
+fun OrderStream.toProductPairs(): ProductIdStream = this
     .flatMap(
         { _, order ->
             order.productIds.toList().allOrderedPairs()
@@ -62,12 +63,12 @@ fun OrderStream.toCoOccurrencePairs(): ProductIdStream = this
         Named.`as`(PRODUCT_ID),
     )
 
-fun ProductIdStream.countCoOccurrences(storeName: String = CO_OCCURRENCE): CoOccurrenceTable = this
+fun ProductIdStream.countAlsoBought(storeName: String = ALSO_BOUGHT): AlsoBoughtTable = this
     .groupByKey()
     .aggregate(
-        { CoOccurrence() },
-        { _, productId, coOccurrence ->
-            coOccurrence + productId
+        { AlsoBoughtCount() },
+        { _, productId, alsoBought ->
+            alsoBought + productId
         },
         Named.`as`(storeName),
         Materialized.`as`(storeName),
@@ -87,21 +88,21 @@ fun OrderStream.explodeByProductId(): OrderByProductIdStream = this
         Named.`as`(ORDER_BY_PRODUCT_ID),
     )
 
-fun OrderByProductIdStream.joinWithCoOccurrences(
-    productCoOccurrenceTable: KTable<ProductId, CoOccurrence>,
-    storeName: String = CO_OCCURRENCE_WITH_CONTEXT_BY_PRODUCT_ID,
-): CoOccurrenceWithContextByProductIdStream = this
+fun OrderByProductIdStream.joinWithAlsoBought(
+    alsoBoughtTable: KTable<ProductId, AlsoBoughtCount>,
+    storeName: String = ALSO_BOUGHT_COUNT_WITH_ORDER_BY_PRODUCT_ID,
+): AlsoBoughtCountWithOrderByProductIdStream = this
     .leftJoin(
-        productCoOccurrenceTable,
-        { _, order, coOccurrence: CoOccurrence? ->
-            coOccurrence.withContext(order)
+        alsoBoughtTable,
+        { _, order, alsoBought: AlsoBoughtCount? ->
+            alsoBought.withOrder(order)
         },
         Joined.`as`(storeName),
     )
 
-fun CoOccurrenceWithContextByProductIdStream.rekeyByOrderId(
-    storeName: String = CO_OCCURRENCE_WITH_CONTEXT,
-): CoOccurrenceWithContextStream = this
+fun AlsoBoughtCountWithOrderByProductIdStream.rekeyByOrderId(
+    storeName: String = ALSO_BOUGHT_COUNT_WITH_ORDER,
+): AlsoBoughtCountWithOrderStream = this
     .map(
         { _, context ->
             KeyValue(
@@ -112,77 +113,74 @@ fun CoOccurrenceWithContextByProductIdStream.rekeyByOrderId(
         Named.`as`(storeName),
     )
 
-@JvmName("CoOccurrenceWithContextStreamCollectPerOrder")
-fun CoOccurrenceWithContextStream.collectPerOrder(
-    storeName: String = CO_OCCURRENCES_WITH_CONTEXT,
-): CoOccurrencesWithContextStream = this
+@JvmName("AlsoBoughtCountWithOrderStreamCollectPerOrder")
+fun AlsoBoughtCountWithOrderStream.collectPerOrder(storeName: String = ALSO_BOUGHT_SO_FAR): AlsoBoughtSoFarStream = this
     .groupByKey()
     .aggregate(
-        { CoOccurrencesWithContext() },
-        { _, coOccurrenceWithContext, coOccurrencesWithContext ->
-            coOccurrencesWithContext + coOccurrenceWithContext
+        { AlsoBoughtSoFar() },
+        { _, alsoBoughtCountWithOrder, alsoBoughtSoFar ->
+            alsoBoughtSoFar + alsoBoughtCountWithOrder
         },
         Named.`as`(storeName),
         Materialized.`as`(storeName),
     )
     .toStream()
 
-@JvmName("CoOccurrencesWithContextStreamOnlyComplete")
-fun CoOccurrencesWithContextStream.onlyComplete(): CoOccurrencesWithContextStream =
-    filter { _, coOccurrencesWithContext -> coOccurrencesWithContext.isComplete() }
+@JvmName("AlsoBoughtSoFarStreamOnlyComplete")
+fun AlsoBoughtSoFarStream.onlyComplete(): AlsoBoughtSoFarStream =
+    filter { _, alsoBoughtSoFar -> alsoBoughtSoFar.isComplete() }
 
-fun CoOccurrencesWithContextStream.rollupToCoOccurrence(): CoOccurrenceStream =
-    mapValues { coOccurrencesWithContext -> coOccurrencesWithContext.rollup() }
+fun AlsoBoughtSoFarStream.sumAlsoBought(): AlsoBoughtStream = mapValues { alsoBoughtSoFar -> alsoBoughtSoFar.sum() }
 
-fun CoOccurrenceStream.toCoDistribution(): CoDistributionStream =
-    mapValues { coOccurrence -> coOccurrence.toCoDistribution() }
+fun AlsoBoughtStream.toAlsoBoughtProbabilities(): AlsoBoughtProbabilitiesStream =
+    mapValues { alsoBought -> alsoBought.toAlsoBoughtProbabilities() }
 
-fun CoDistributionStream.selectTopN(n: Int): CoDistributionStream =
-    mapValues { coDistribution -> coDistribution.topN(n) }
+fun AlsoBoughtProbabilitiesStream.selectTopN(n: Int): AlsoBoughtProbabilitiesStream =
+    mapValues { alsoBoughtProbabilities -> alsoBoughtProbabilities.topN(n) }
 
-@JvmName("CoDistributionStreamExplodeByProductIds")
-fun CoDistributionStream.explodeByProductId(): ProbabilityContextStream = this
+@JvmName("AlsoBoughtProbabilitiesStreamExplodeByProductIds")
+fun AlsoBoughtProbabilitiesStream.explodeByProductId(): ProbabilityWithOrderStream = this
     .flatMap(
-        { orderId, coDistribution ->
-            coDistribution.probabilityByProductId.map { (productId, probability) ->
+        { orderId, alsoBoughtProbabilities ->
+            alsoBoughtProbabilities.probabilityByProductId.map { (productId, probability) ->
                 KeyValue(
                     productId,
-                    ProbabilityContext(
+                    ProbabilityWithOrder(
                         probability,
                         orderId,
-                        coDistribution.probabilityByProductId.size,
+                        alsoBoughtProbabilities.probabilityByProductId.size,
                     ),
                 )
             }
         },
-        Named.`as`(PROBABILITY_CONTEXT),
+        Named.`as`(PROBABILITY_WITH_ORDER),
     )
 
-fun ProbabilityContextStream.joinWithProduct(productTable: ProductTable): ProductWithProbabilityContextStream = this
+fun ProbabilityWithOrderStream.joinWithProduct(productTable: ProductTable): RelatedProductWithOrderStream = this
     .leftJoin(
         productTable,
         { context, product: Product? -> context.withProduct(product) },
-        Joined.`as`(PRODUCT_WITH_PROBABILITY_CONTEXT),
+        Joined.`as`(RELATED_PRODUCT_WITH_ORDER),
     )
 
-@JvmName("ProductWithProbabilityContextStreamCollectPerOrder")
-fun ProductWithProbabilityContextStream.collectPerOrder(
-    storeName: String = PRODUCTS_WITH_PROBABILITY_CONTEXT,
-): ProductsWithProbabilityContextStream = this
+@JvmName("RelatedProductWithOrderStreamCollectPerOrder")
+fun RelatedProductWithOrderStream.collectPerOrder(
+    storeName: String = RELATED_PRODUCTS_SO_FAR,
+): RelatedProductsSoFarStream = this
     .groupBy { _, context -> context.orderId }
     .aggregate(
-        { ProductsWithProbabilityContext() },
-        { _, productWithProbabilityContext, productsWithProbabilityContext ->
-            productsWithProbabilityContext + productWithProbabilityContext
+        { RelatedProductsSoFar() },
+        { _, relatedProductWithOrder, relatedProductsSoFar ->
+            relatedProductsSoFar + relatedProductWithOrder
         },
         Named.`as`(storeName),
         Materialized.`as`(storeName),
     )
     .toStream()
 
-@JvmName("ProductsWithProbabilityContextStreamOnlyComplete")
-fun ProductsWithProbabilityContextStream.onlyComplete(): ProductsWithProbabilityContextStream =
+@JvmName("RelatedProductsSoFarStreamOnlyComplete")
+fun RelatedProductsSoFarStream.onlyComplete(): RelatedProductsSoFarStream =
     filter { _, context -> context.isComplete() }
 
-fun ProductsWithProbabilityContextStream.removeEmpty(): ProductsWithProbabilityStream =
-    mapValues { _, context -> context.toProductsWithProbability() }
+fun RelatedProductsSoFarStream.removeEmpty(): RelatedProductsStream =
+    mapValues { _, context -> context.toRelatedProducts() }

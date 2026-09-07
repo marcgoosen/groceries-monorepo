@@ -2,7 +2,7 @@ package io.github.marcgoosen.groceries.recommender.kafkastreams
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import io.github.marcgoosen.groceries.recommender.domain.CoOccurrence
+import io.github.marcgoosen.groceries.recommender.domain.AlsoBoughtCount
 import io.github.marcgoosen.groceries.shared.domain.ProductId
 import org.apache.kafka.streams.TestInputTopic
 import org.apache.kafka.streams.TestOutputTopic
@@ -11,15 +11,15 @@ import org.junit.jupiter.api.Test
 
 private const val INPUT_TOPIC = "input-pairs"
 private const val OUTPUT_TOPIC = "output-counts"
-class CountCoOccurrencesTest : BaseTopologyTest() {
+class CountAlsoBoughtTest : BaseTopologyTest() {
     private lateinit var inputTopic: TestInputTopic<ProductId, ProductId>
-    private lateinit var outputTopic: TestOutputTopic<ProductId, CoOccurrence>
+    private lateinit var outputTopic: TestOutputTopic<ProductId, AlsoBoughtCount>
 
     @BeforeEach
     fun onSetup() {
         setup {
             streamsBuilder.stream<ProductId, ProductId>(INPUT_TOPIC)
-                .countCoOccurrences()
+                .countAlsoBought()
                 .toStream()
                 .to(OUTPUT_TOPIC)
         }
@@ -33,7 +33,7 @@ class CountCoOccurrencesTest : BaseTopologyTest() {
         outputTopic = topologyTestDriver.createOutputTopic(
             OUTPUT_TOPIC,
             avroSerdes.string.deserializer(),
-            avroSerdes.create<CoOccurrence>().deserializer(),
+            avroSerdes.create<AlsoBoughtCount>().deserializer(),
         )
     }
 
@@ -45,7 +45,9 @@ class CountCoOccurrencesTest : BaseTopologyTest() {
         inputTopic.pipeInput("p1", "p3")
         inputTopic.pipeInput("p1", "p2")
 
-        assertThat(outputTopic.readKeyValuesToMap()["p1"]).isEqualTo(CoOccurrence(mapOf("p2" to 2, "p3" to 1)))
+        assertThat(
+            outputTopic.readKeyValuesToMap()["p1"],
+        ).isEqualTo(AlsoBoughtCount(mapOf("p2" to 2, "p3" to 1)))
     }
 
     @Test
@@ -59,9 +61,9 @@ class CountCoOccurrencesTest : BaseTopologyTest() {
 
         assertThat(outputTopic.readKeyValuesToMap()).isEqualTo(
             mapOf(
-                "p1" to CoOccurrence(mapOf("p2" to 2)),
-                "p2" to CoOccurrence(mapOf("p1" to 1)),
-                "p3" to CoOccurrence(mapOf("p1" to 1)),
+                "p1" to AlsoBoughtCount(mapOf("p2" to 2)),
+                "p2" to AlsoBoughtCount(mapOf("p1" to 1)),
+                "p3" to AlsoBoughtCount(mapOf("p1" to 1)),
             ),
         )
     }

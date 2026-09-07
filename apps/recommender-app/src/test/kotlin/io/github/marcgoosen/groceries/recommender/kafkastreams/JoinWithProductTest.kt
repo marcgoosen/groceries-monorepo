@@ -2,8 +2,8 @@ package io.github.marcgoosen.groceries.recommender.kafkastreams
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import io.github.marcgoosen.groceries.recommender.domain.ProbabilityContext
-import io.github.marcgoosen.groceries.recommender.domain.ProductWithProbabilityContext
+import io.github.marcgoosen.groceries.recommender.domain.ProbabilityWithOrder
+import io.github.marcgoosen.groceries.recommender.domain.RelatedProductWithOrder
 import io.github.marcgoosen.groceries.recommender.domain.withProbability
 import io.github.marcgoosen.groceries.shared.domain.Product
 import io.github.marcgoosen.groceries.shared.domain.ProductId
@@ -17,16 +17,16 @@ private const val CONTEXT_INPUT_TOPIC = "input-context"
 private const val PRODUCT_INPUT_TOPIC = "input-products"
 private const val OUTPUT_TOPIC = "output-joined"
 class JoinWithProductTest : BaseTopologyTest() {
-    private lateinit var contextInputTopic: TestInputTopic<ProductId, ProbabilityContext>
+    private lateinit var contextInputTopic: TestInputTopic<ProductId, ProbabilityWithOrder>
     private lateinit var productInputTopic: TestInputTopic<ProductId, Product>
-    private lateinit var outputTopic: TestOutputTopic<ProductId, ProductWithProbabilityContext>
+    private lateinit var outputTopic: TestOutputTopic<ProductId, RelatedProductWithOrder>
 
     @BeforeEach
     fun onSetup() {
         setup {
             val productTable = streamsBuilder.table<ProductId, Product>(PRODUCT_INPUT_TOPIC)
 
-            streamsBuilder.stream<ProductId, ProbabilityContext>(CONTEXT_INPUT_TOPIC)
+            streamsBuilder.stream<ProductId, ProbabilityWithOrder>(CONTEXT_INPUT_TOPIC)
                 .joinWithProduct(productTable)
                 .to(OUTPUT_TOPIC)
         }
@@ -34,7 +34,7 @@ class JoinWithProductTest : BaseTopologyTest() {
         contextInputTopic = topologyTestDriver.createInputTopic(
             CONTEXT_INPUT_TOPIC,
             avroSerdes.string.serializer(),
-            avroSerdes.create<ProbabilityContext>().serializer(),
+            avroSerdes.create<ProbabilityWithOrder>().serializer(),
         )
 
         productInputTopic = topologyTestDriver.createInputTopic(
@@ -46,7 +46,7 @@ class JoinWithProductTest : BaseTopologyTest() {
         outputTopic = topologyTestDriver.createOutputTopic(
             OUTPUT_TOPIC,
             avroSerdes.string.deserializer(),
-            avroSerdes.create<ProductWithProbabilityContext>().deserializer(),
+            avroSerdes.create<RelatedProductWithOrder>().deserializer(),
         )
     }
 
@@ -57,14 +57,14 @@ class JoinWithProductTest : BaseTopologyTest() {
         productInputTopic.pipeInput(product.productId, product)
 
         // When
-        contextInputTopic.pipeInput(product.productId, ProbabilityContext(0.75, "order-1", 3))
+        contextInputTopic.pipeInput(product.productId, ProbabilityWithOrder(0.75, "order-1", 3))
 
         assertThat(outputTopic.readKeyValuesToList()).isEqualTo(
             listOf(
                 KeyValue(
                     product.productId,
-                    ProductWithProbabilityContext(
-                        productWithProbability = product.withProbability(0.75),
+                    RelatedProductWithOrder(
+                        relatedProduct = product.withProbability(0.75),
                         orderId = "order-1",
                         expectedSize = 3,
                     ),
@@ -77,14 +77,14 @@ class JoinWithProductTest : BaseTopologyTest() {
     fun `It should attach no product when the product is unknown`() {
         // Given
         // When
-        contextInputTopic.pipeInput("p2", ProbabilityContext(0.5, "order-2", 1))
+        contextInputTopic.pipeInput("p2", ProbabilityWithOrder(0.5, "order-2", 1))
 
         assertThat(outputTopic.readKeyValuesToList()).isEqualTo(
             listOf(
                 KeyValue(
                     "p2",
-                    ProductWithProbabilityContext(
-                        productWithProbability = null,
+                    RelatedProductWithOrder(
+                        relatedProduct = null,
                         orderId = "order-2",
                         expectedSize = 1,
                     ),

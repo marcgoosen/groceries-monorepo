@@ -4,4 +4,4 @@ import io.github.marcgoosen.groceries.shared.domain.OrderId
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class ProbabilityContext(val probability: Double, val orderId: OrderId, val expectedSize: Int)
+data class RelatedProductWithOrder(val relatedProduct: RelatedProduct?, val orderId: OrderId, val expectedSize: Int)

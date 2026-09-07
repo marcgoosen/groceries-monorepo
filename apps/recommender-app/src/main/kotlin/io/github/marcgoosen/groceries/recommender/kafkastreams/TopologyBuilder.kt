@@ -1,9 +1,9 @@
 package io.github.marcgoosen.groceries.recommender.kafkastreams
 
-import io.github.marcgoosen.groceries.recommender.CoOccurrenceTable
+import io.github.marcgoosen.groceries.recommender.AlsoBoughtTable
 import io.github.marcgoosen.groceries.recommender.OrderByProductIdStream
 import io.github.marcgoosen.groceries.recommender.OrderStream
-import io.github.marcgoosen.groceries.recommender.ProbabilityContextStream
+import io.github.marcgoosen.groceries.recommender.ProbabilityWithOrderStream
 import io.github.marcgoosen.groceries.recommender.ProductTable
 import org.apache.kafka.streams.StreamsBuilder
 import org.apache.kafka.streams.Topology
@@ -26,18 +26,18 @@ class TopologyBuilder(val streamsBuilder: StreamsBuilder, private val topicNameB
             )
     }
 
-    val productCoOccurrenceTable: CoOccurrenceTable by lazy {
+    val alsoBoughtTable: AlsoBoughtTable by lazy {
         orderStream
-            .toCoOccurrencePairs()
-            .countCoOccurrences()
+            .toProductPairs()
+            .countAlsoBought()
     }
 
-    fun OrderByProductIdStream.joinWithCoOccurrences() = this
-        .joinWithCoOccurrences(
-            productCoOccurrenceTable,
+    fun OrderByProductIdStream.joinWithAlsoBought() = this
+        .joinWithAlsoBought(
+            alsoBoughtTable,
         )
 
-    fun ProbabilityContextStream.joinWithProduct() = this
+    fun ProbabilityWithOrderStream.joinWithProduct() = this
         .joinWithProduct(
             productTable,
         )
@@ -48,12 +48,12 @@ class TopologyBuilder(val streamsBuilder: StreamsBuilder, private val topicNameB
     fun build(): Topology = build {
         orderStream
             .explodeByProductId()
-            .joinWithCoOccurrences()
+            .joinWithAlsoBought()
             .rekeyByOrderId()
             .collectPerOrder()
             .onlyComplete()
-            .rollupToCoOccurrence()
-            .toCoDistribution()
+            .sumAlsoBought()
+            .toAlsoBoughtProbabilities()
             .selectTopN(3)
             .explodeByProductId()
             .joinWithProduct()

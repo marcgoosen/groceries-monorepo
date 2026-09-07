@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test
 /**
  * The fan-in aggregate. Both fields are defaulted, so it starts empty on the first update.
  */
-class CoOccurrencesWithContextTest {
+class AlsoBoughtSoFarTest {
     private val json = Json { prettyPrint = true }
 
     private val order = Order(
@@ -22,12 +22,12 @@ class CoOccurrencesWithContextTest {
         timestamp = Instant.parse("2026-01-15T09:30:00.123Z"),
     )
 
-    private val context = CoOccurrencesWithContext(
-        coOccurrences = listOf(CoOccurrence(mapOf("p3" to 1)), CoOccurrence(mapOf("p4" to 2))),
+    private val context = AlsoBoughtSoFar(
+        alsoBought = listOf(AlsoBoughtCount(mapOf("p3" to 1)), AlsoBoughtCount(mapOf("p4" to 2))),
         order = order,
     )
 
-    private val empty = CoOccurrencesWithContext()
+    private val empty = AlsoBoughtSoFar()
 
     @Test
     fun `It should serialize a populated aggregate to JSON and read it back`() {
@@ -38,7 +38,7 @@ class CoOccurrencesWithContextTest {
         assertThat(serialized).isEqualTo(
             """
             {
-                "coOccurrences": [
+                "alsoBought": [
                     {
                         "countsByProduct": {
                             "p3": 1
@@ -69,21 +69,21 @@ class CoOccurrencesWithContextTest {
             }
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString<CoOccurrencesWithContext>(serialized)).isEqualTo(context)
+        assertThat(json.decodeFromString<AlsoBoughtSoFar>(serialized)).isEqualTo(context)
     }
 
     @Test
     fun `It should serialize a populated aggregate to Avro and read it back`() {
         // Given
         // When
-        val serialized = Avro.encodeToByteArray(CoOccurrencesWithContext.serializer(), context)
+        val serialized = Avro.encodeToByteArray(AlsoBoughtSoFar.serializer(), context)
 
         assertThat(
             serialized.toHex(),
         ).isEqualTo(
             "0402047033020002047034040000020e6f726465722d3104047031000000000000004002047032000000000000f83f0600f6a8ec8ff866",
         )
-        assertThat(Avro.decodeFromByteArray(CoOccurrencesWithContext.serializer(), serialized)).isEqualTo(context)
+        assertThat(Avro.decodeFromByteArray(AlsoBoughtSoFar.serializer(), serialized)).isEqualTo(context)
     }
 
     @Test
@@ -97,17 +97,17 @@ class CoOccurrencesWithContextTest {
             {}
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString<CoOccurrencesWithContext>(serialized)).isEqualTo(empty)
+        assertThat(json.decodeFromString<AlsoBoughtSoFar>(serialized)).isEqualTo(empty)
     }
 
     @Test
     fun `It should serialize its defaults to Avro and read it back`() {
         // Given
         // When
-        val serialized = Avro.encodeToByteArray(CoOccurrencesWithContext.serializer(), empty)
+        val serialized = Avro.encodeToByteArray(AlsoBoughtSoFar.serializer(), empty)
 
         assertThat(serialized.toHex()).isEqualTo("0000")
-        assertThat(Avro.decodeFromByteArray(CoOccurrencesWithContext.serializer(), serialized)).isEqualTo(empty)
+        assertThat(Avro.decodeFromByteArray(AlsoBoughtSoFar.serializer(), serialized)).isEqualTo(empty)
     }
 }
 

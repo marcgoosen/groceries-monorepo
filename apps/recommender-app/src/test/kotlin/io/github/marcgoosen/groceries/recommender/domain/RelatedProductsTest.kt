@@ -11,13 +11,13 @@ import org.junit.jupiter.api.Test
 /**
  * The recommendation that leaves the pipeline on the related-products topic.
  */
-class ProductsWithProbabilityTest {
+class RelatedProductsTest {
     private val json = Json { prettyPrint = true }
 
-    private val productsWithProbability = ProductsWithProbability(
+    private val relatedProducts = RelatedProducts(
         listOf(
-            ProductWithProbability(Product("p1", "Milk", 2.0), 0.5),
-            ProductWithProbability(Product("p2", "Bread", 1.5), 0.3),
+            RelatedProduct(Product("p1", "Milk", 2.0), 0.5),
+            RelatedProduct(Product("p2", "Bread", 1.5), 0.3),
         ),
     )
 
@@ -25,12 +25,12 @@ class ProductsWithProbabilityTest {
     fun `It should serialize a full recommendation to JSON and read it back`() {
         // Given
         // When
-        val serialized = json.encodeToString(productsWithProbability)
+        val serialized = json.encodeToString(relatedProducts)
 
         assertThat(serialized).isEqualTo(
             """
             {
-                "productsWithProbabilities": [
+                "relatedProducts": [
                     {
                         "product": {
                             "productId": "p1",
@@ -52,15 +52,15 @@ class ProductsWithProbabilityTest {
             """.trimIndent(),
         )
         assertThat(
-            json.decodeFromString<ProductsWithProbability>(serialized),
-        ).isEqualTo(productsWithProbability)
+            json.decodeFromString<RelatedProducts>(serialized),
+        ).isEqualTo(relatedProducts)
     }
 
     @Test
     fun `It should serialize a full recommendation to Avro and read it back`() {
         // Given
         // When
-        val serialized = Avro.encodeToByteArray(ProductsWithProbability.serializer(), productsWithProbability)
+        val serialized = Avro.encodeToByteArray(RelatedProducts.serializer(), relatedProducts)
 
         assertThat(
             serialized.toHex(),
@@ -68,8 +68,8 @@ class ProductsWithProbabilityTest {
             "04047031084d696c6b0000000000000040000000000000e03f0470320a4272656164000000000000f83f333333333333d33f00",
         )
         assertThat(
-            Avro.decodeFromByteArray(ProductsWithProbability.serializer(), serialized),
-        ).isEqualTo(productsWithProbability)
+            Avro.decodeFromByteArray(RelatedProducts.serializer(), serialized),
+        ).isEqualTo(relatedProducts)
     }
 }
 

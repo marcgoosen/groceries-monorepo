@@ -4,4 +4,4 @@ import io.github.marcgoosen.groceries.shared.domain.ProductId
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class CoOccurrence(val countsByProduct: Map<ProductId, Int> = emptyMap())
+data class AlsoBoughtProbabilities(val probabilityByProductId: Map<ProductId, Double> = emptyMap())

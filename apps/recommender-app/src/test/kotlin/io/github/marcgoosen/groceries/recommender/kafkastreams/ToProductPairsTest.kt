@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test
 private const val INPUT_TOPIC = "input-orders"
 private const val OUTPUT_TOPIC = "output-pairs"
 
-class ToCoOccurrencePairsTest : BaseTopologyTest() {
+class ToProductPairsTest : BaseTopologyTest() {
     private lateinit var inputTopic: TestInputTopic<OrderId, Order>
     private lateinit var outputTopic: TestOutputTopic<ProductId, ProductId>
 
@@ -24,7 +24,7 @@ class ToCoOccurrencePairsTest : BaseTopologyTest() {
     fun onSetup() {
         setup {
             streamsBuilder.stream<OrderId, Order>(INPUT_TOPIC)
-                .toCoOccurrencePairs()
+                .toProductPairs()
                 .to(OUTPUT_TOPIC)
         }
 

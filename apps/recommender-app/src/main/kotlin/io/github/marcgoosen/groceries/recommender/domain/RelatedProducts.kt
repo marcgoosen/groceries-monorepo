@@ -3,4 +3,4 @@ package io.github.marcgoosen.groceries.recommender.domain
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class ProductsWithProbability(val productsWithProbabilities: List<ProductWithProbability>)
+data class RelatedProducts(val relatedProducts: List<RelatedProduct>)
