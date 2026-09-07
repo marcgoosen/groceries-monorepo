@@ -2,6 +2,7 @@ plugins {
     // These are not in buildSrc classpath yet, so we can define versions here via alias
     alias(libs.plugins.kotlinx.serialization) apply false
     alias(libs.plugins.ktor) apply false
+    alias(libs.plugins.gradle.versions)
 }
 
 allprojects {

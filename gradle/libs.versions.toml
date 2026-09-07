@@ -1,29 +1,29 @@
 [versions]
 assertk = "0.28.1"
-avro = "1.12.0"
-avro4k = "2.5.4"
-confluent-kafka = "8.0.0"
-faker = "1.16.0"
-gradle-versions-plugin = "0.51.0"
-hoplite = "2.7.5"
+avro = "1.12.2"
+avro4k = "2.12.0"
+confluent-kafka = "8.3.1"
+faker = "1.16.2"
+gradle-versions-plugin = "0.61.0"
+hoplite = "2.9.0"
 janino = "3.1.12" # used by logback for conditional configuration
 java = "21"
-junit-jupiter = "5.11.3"
-kafka = "8.0.0-ccs"
+junit-jupiter = "6.1.3"
+kafka = "8.3.1-ccs"
 kafka-schema-registry-plugin = "2.4.0"
 kotlin-core = "2.4.20"
 kotlin-gradle-plugin = "2.0.21"
-kotlin-logging = "7.0.0"
-kotlinx-coroutines = "1.10.1"
+kotlin-logging = "8.0.4"
+kotlinx-coroutines = "1.11.0"
 kotlinx-datetime = "0.6.1"
-kotlinx-serialization = "1.8.0"
+kotlinx-serialization = "1.11.0"
 kover = "0.9.9"
-ktor = "3.0.3"
-logback-classic = "1.5.16"
-logstashLogback = "8.0"
-micrometer = "1.14.4"
-mockk = "1.13.13"
-slf4j = "2.0.12"
+ktor = "3.5.2"
+logback-classic = "1.6.3"
+logstashLogback = "9.0"
+micrometer = "1.17.1"
+mockk = "1.14.11"
+slf4j = "2.0.19"
 spotless = "8.0.0"
 test-containers = "1.20.4"
 
@@ -76,7 +76,7 @@ logging = ["logback-classic", "logback-logstash-encoder", "janino", "slf4j"]
 test-containers = ["test-containers-junit-jupiter", "test-containers-kafka"]
 
 [plugins]
-gradle-versions = { id = "com.github.ben-manes.versions", version.ref = "gradle-versions-plugin" }
+gradle-versions = { id = "io.github.ben-manes.versions", version.ref = "gradle-versions-plugin" }
 kafka-schema-registry = { id = "com.github.imflog.kafka-schema-registry-gradle-plugin", version.ref = "kafka-schema-registry-plugin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin-core" }
 kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin-core" }
