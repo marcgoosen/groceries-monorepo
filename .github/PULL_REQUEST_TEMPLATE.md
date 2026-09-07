@@ -1,6 +1,6 @@
-# Summary
+# WHY?
 
-<!-- What does this PR do, and why? One or two sentences. -->
+<!-- Why is this change needed? The problem, the motivation or the ticket behind it — not the implementation. -->
 
 # Changes
 

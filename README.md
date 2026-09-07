@@ -117,11 +117,10 @@ each aggregate carries the count it expects (`CoOccurrencesWithContext` compares
 trade-off: it is exact and needs no timers, but it depends on every fan-out record arriving — a permanently lost
 record leaves an aggregate that never completes.
 
-**Local state is wiped on every start.** `streams.cleanUp()` runs before `start()`. This is deliberate: the app is
-deployed on Kubernetes with no persistent volume, so a restarting pod never has usable local state, and clearing it
-avoids restoring against a store that a previous incarnation left half-written. The cost is a full changelog restore
-on every restart, which is the right trade only as long as that assumption holds — on a StatefulSet with a volume,
-this line should go.
+**Local state is wiped on every start.** `streams.cleanUp()` runs before `start()`. On Kubernetes this changes
+nothing, since pods start with an empty disk either way — it is there for local development, so successive runs do
+not pick up the state stores the previous one left behind. On a StatefulSet with a persistent volume the line would
+have to go, because it would force a full changelog restore on every restart.
 
 **Co-occurrence state is unbounded.** `countCoOccurrences()` keeps a `KTable` of product → co-occurring product
 counts that grows with the catalogue and never expires. For a fixed catalogue this is what you want; for a long-lived

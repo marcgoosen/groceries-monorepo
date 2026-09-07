@@ -34,7 +34,8 @@ fun main(): Unit = with(Dependencies) {
 
     logger.info { topology.describe() }
 
-    // Pods are ephemeral and hold no persistent volume, so there is never local state worth keeping across a restart.
+    // A no-op on Kubernetes, where pods start with an empty disk anyway. It is here so that a local run starts from
+    // a clean set of state stores instead of whatever the previous run left behind.
     streams.cleanUp()
     streams.start()
 
