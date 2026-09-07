@@ -1,6 +1,5 @@
 package io.github.marcgoosen.groceries.recommender
 
-import io.github.marcgoosen.groceries.recommender.kafkastreams.AvroSerdes
 import io.github.marcgoosen.groceries.recommender.kafkastreams.Topic
 import io.github.marcgoosen.groceries.recommender.kafkastreams.TopicNameBuilder
 import io.github.marcgoosen.groceries.shared.domain.Order
@@ -20,7 +19,7 @@ import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
-import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.Producer
 import org.apache.kafka.clients.producer.ProducerRecord
 import java.util.UUID
 import kotlin.time.Duration
@@ -34,28 +33,15 @@ private const val MAX_QUANTITY = 3
 private val ORDER_INTERVAL = 50.milliseconds
 
 class Simulator(
-    private val kafkaConfig: Map<String, String>,
-    private val avroSerdes: AvroSerdes,
+    private val producers: Producers,
     private val topicNameBuilder: TopicNameBuilder,
     private val orderInterval: Duration = ORDER_INTERVAL,
 ) : AutoCloseable {
+    data class Producers(val product: Producer<ProductId, Product>, val order: Producer<OrderId, Order>)
+
     private val faker = Faker()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val Topic.topicName get() = topicNameBuilder.build(this)
-
-    private val productProducer =
-        KafkaProducer<ProductId, Product>(
-            kafkaConfig.toProperties(),
-            avroSerdes.string.serializer(),
-            avroSerdes.create<Product>().serializer(),
-        )
-
-    private val orderProducer =
-        KafkaProducer<OrderId, Order>(
-            kafkaConfig.toProperties(),
-            avroSerdes.string.serializer(),
-            avroSerdes.create<Order>().serializer(),
-        )
 
     private val products =
         (1..CATALOGUE_SIZE).map {
@@ -80,22 +66,22 @@ class Simulator(
 
     override fun close() {
         runBlocking { scope.coroutineContext.job.cancelAndJoin() }
-        productProducer.close()
-        orderProducer.close()
+        producers.product.close()
+        producers.order.close()
     }
 
     private fun produceProducts() {
         val productTopic = Topic.PRODUCT.topicName
         products.forEach { product ->
-            productProducer.send(ProducerRecord(productTopic, product.productId, product))
+            producers.product.send(ProducerRecord(productTopic, product.productId, product))
         }
-        productProducer.flush()
+        producers.product.flush()
         logger.info { "Produced ${products.size} products to $productTopic" }
     }
 
     private fun produceOrder() {
         val order = generateRandomOrder()
-        orderProducer.send(ProducerRecord(Topic.ORDER.topicName, order.orderId, order)) { metadata, exception ->
+        producers.order.send(ProducerRecord(Topic.ORDER.topicName, order.orderId, order)) { metadata, exception ->
             when (exception) {
                 null -> logger.debug { "Produced order ${order.orderId} to ${metadata.topic()}" }
                 else -> logger.error(exception) { "Error producing order ${order.orderId}" }
