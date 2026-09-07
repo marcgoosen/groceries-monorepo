@@ -33,7 +33,6 @@ fun main(): Unit = with(Dependencies) {
     }
 
     logger.info { topology.describe() }
-    streams.cleanUp()
     streams.start()
 
     val engine =
@@ -44,7 +43,7 @@ fun main(): Unit = with(Dependencies) {
         }
 
     engine.addShutdownHook {
-        println("Closing, cleaning up...")
+        logger.info { "Shutting down ${config.main.applicationId}" }
         streams.close()
         simulator.close()
     }
@@ -66,11 +65,3 @@ fun configureLogback(filePath: String) {
 
 private fun loadConfigFile(filePath: String) = Thread.currentThread().contextClassLoader.getResourceAsStream(filePath)
     ?: throw IllegalArgumentException("File not found on classpath: $filePath")
-
-fun Config.scramble() = copy(
-    kafka =
-    kafka +
-        mapOf(
-            "sasl.jaas.config" to "********",
-        ),
-)
