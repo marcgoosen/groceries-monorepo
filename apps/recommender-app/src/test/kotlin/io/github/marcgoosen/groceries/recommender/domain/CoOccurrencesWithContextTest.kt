@@ -6,6 +6,7 @@ import com.github.avrokotlin.avro4k.Avro
 import io.github.marcgoosen.groceries.shared.domain.Order
 import io.github.marcgoosen.groceries.shared.domain.OrderLine
 import kotlinx.datetime.Instant
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
@@ -32,7 +33,7 @@ class CoOccurrencesWithContextTest {
     fun `It should serialize a populated aggregate to JSON and read it back`() {
         // Given
         // When
-        val serialized = json.encodeToString(CoOccurrencesWithContext.serializer(), context)
+        val serialized = json.encodeToString(context)
 
         assertThat(serialized).isEqualTo(
             """
@@ -68,7 +69,7 @@ class CoOccurrencesWithContextTest {
             }
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString(CoOccurrencesWithContext.serializer(), serialized)).isEqualTo(context)
+        assertThat(json.decodeFromString<CoOccurrencesWithContext>(serialized)).isEqualTo(context)
     }
 
     @Test
@@ -89,14 +90,14 @@ class CoOccurrencesWithContextTest {
     fun `It should serialize its defaults to JSON and read it back`() {
         // Given
         // When
-        val serialized = json.encodeToString(CoOccurrencesWithContext.serializer(), empty)
+        val serialized = json.encodeToString(empty)
 
         assertThat(serialized).isEqualTo(
             """
             {}
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString(CoOccurrencesWithContext.serializer(), serialized)).isEqualTo(empty)
+        assertThat(json.decodeFromString<CoOccurrencesWithContext>(serialized)).isEqualTo(empty)
     }
 
     @Test

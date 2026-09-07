@@ -3,6 +3,7 @@ package io.github.marcgoosen.groceries.recommender.domain
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.avrokotlin.avro4k.Avro
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
@@ -18,7 +19,7 @@ class ProbabilityContextTest {
     fun `It should serialize a probability context to JSON and read it back`() {
         // Given
         // When
-        val serialized = json.encodeToString(ProbabilityContext.serializer(), probabilityContext)
+        val serialized = json.encodeToString(probabilityContext)
 
         assertThat(serialized).isEqualTo(
             """
@@ -29,7 +30,7 @@ class ProbabilityContextTest {
             }
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString(ProbabilityContext.serializer(), serialized)).isEqualTo(probabilityContext)
+        assertThat(json.decodeFromString<ProbabilityContext>(serialized)).isEqualTo(probabilityContext)
     }
 
     @Test

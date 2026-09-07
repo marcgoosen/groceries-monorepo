@@ -3,6 +3,7 @@ package io.github.marcgoosen.groceries.recommender.domain
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.avrokotlin.avro4k.Avro
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
@@ -20,7 +21,7 @@ class CoOccurrenceTest {
     fun `It should serialize a populated co-occurrence to JSON and read it back`() {
         // Given
         // When
-        val serialized = json.encodeToString(CoOccurrence.serializer(), coOccurrence)
+        val serialized = json.encodeToString(coOccurrence)
 
         assertThat(serialized).isEqualTo(
             """
@@ -32,7 +33,7 @@ class CoOccurrenceTest {
             }
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString(CoOccurrence.serializer(), serialized)).isEqualTo(coOccurrence)
+        assertThat(json.decodeFromString<CoOccurrence>(serialized)).isEqualTo(coOccurrence)
     }
 
     @Test
@@ -49,14 +50,14 @@ class CoOccurrenceTest {
     fun `It should serialize its defaults to JSON and read it back`() {
         // Given
         // When
-        val serialized = json.encodeToString(CoOccurrence.serializer(), empty)
+        val serialized = json.encodeToString(empty)
 
         assertThat(serialized).isEqualTo(
             """
             {}
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString(CoOccurrence.serializer(), serialized)).isEqualTo(empty)
+        assertThat(json.decodeFromString<CoOccurrence>(serialized)).isEqualTo(empty)
     }
 
     @Test

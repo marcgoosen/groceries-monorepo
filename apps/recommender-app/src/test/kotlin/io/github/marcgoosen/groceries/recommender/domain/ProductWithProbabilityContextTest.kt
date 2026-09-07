@@ -4,6 +4,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.avrokotlin.avro4k.Avro
 import io.github.marcgoosen.groceries.shared.domain.Product
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
@@ -25,7 +26,7 @@ class ProductWithProbabilityContextTest {
     fun `It should serialize a context with a product to JSON and read it back`() {
         // Given
         // When
-        val serialized = json.encodeToString(ProductWithProbabilityContext.serializer(), context)
+        val serialized = json.encodeToString(context)
 
         assertThat(serialized).isEqualTo(
             """
@@ -43,7 +44,7 @@ class ProductWithProbabilityContextTest {
             }
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString(ProductWithProbabilityContext.serializer(), serialized)).isEqualTo(context)
+        assertThat(json.decodeFromString<ProductWithProbabilityContext>(serialized)).isEqualTo(context)
     }
 
     @Test
@@ -60,7 +61,7 @@ class ProductWithProbabilityContextTest {
     fun `It should serialize a context whose product was not found to JSON and read it back`() {
         // Given
         // When
-        val serialized = json.encodeToString(ProductWithProbabilityContext.serializer(), unresolved)
+        val serialized = json.encodeToString(unresolved)
 
         assertThat(serialized).isEqualTo(
             """
@@ -71,7 +72,7 @@ class ProductWithProbabilityContextTest {
             }
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString(ProductWithProbabilityContext.serializer(), serialized)).isEqualTo(unresolved)
+        assertThat(json.decodeFromString<ProductWithProbabilityContext>(serialized)).isEqualTo(unresolved)
     }
 
     @Test

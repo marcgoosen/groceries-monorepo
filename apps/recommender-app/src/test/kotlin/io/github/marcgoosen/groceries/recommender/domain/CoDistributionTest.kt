@@ -3,6 +3,7 @@ package io.github.marcgoosen.groceries.recommender.domain
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.avrokotlin.avro4k.Avro
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
@@ -20,7 +21,7 @@ class CoDistributionTest {
     fun `It should serialize a populated distribution to JSON and read it back`() {
         // Given
         // When
-        val serialized = json.encodeToString(CoDistribution.serializer(), coDistribution)
+        val serialized = json.encodeToString(coDistribution)
 
         assertThat(serialized).isEqualTo(
             """
@@ -32,7 +33,7 @@ class CoDistributionTest {
             }
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString(CoDistribution.serializer(), serialized)).isEqualTo(coDistribution)
+        assertThat(json.decodeFromString<CoDistribution>(serialized)).isEqualTo(coDistribution)
     }
 
     @Test
@@ -49,14 +50,14 @@ class CoDistributionTest {
     fun `It should serialize its defaults to JSON and read it back`() {
         // Given
         // When
-        val serialized = json.encodeToString(CoDistribution.serializer(), empty)
+        val serialized = json.encodeToString(empty)
 
         assertThat(serialized).isEqualTo(
             """
             {}
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString(CoDistribution.serializer(), serialized)).isEqualTo(empty)
+        assertThat(json.decodeFromString<CoDistribution>(serialized)).isEqualTo(empty)
     }
 
     @Test

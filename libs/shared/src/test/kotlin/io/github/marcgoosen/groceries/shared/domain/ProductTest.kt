@@ -3,6 +3,7 @@ package io.github.marcgoosen.groceries.shared.domain
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.avrokotlin.avro4k.Avro
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
@@ -18,7 +19,7 @@ class ProductTest {
     fun `It should serialize a product to JSON and read it back`() {
         // Given
         // When
-        val serialized = json.encodeToString(Product.serializer(), product)
+        val serialized = json.encodeToString(product)
 
         assertThat(serialized).isEqualTo(
             """
@@ -29,7 +30,7 @@ class ProductTest {
             }
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString(Product.serializer(), serialized)).isEqualTo(product)
+        assertThat(json.decodeFromString<Product>(serialized)).isEqualTo(product)
     }
 
     @Test

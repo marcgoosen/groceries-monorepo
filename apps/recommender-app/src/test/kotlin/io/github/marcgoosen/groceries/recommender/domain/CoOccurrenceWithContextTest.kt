@@ -6,6 +6,7 @@ import com.github.avrokotlin.avro4k.Avro
 import io.github.marcgoosen.groceries.shared.domain.Order
 import io.github.marcgoosen.groceries.shared.domain.OrderLine
 import kotlinx.datetime.Instant
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
@@ -27,7 +28,7 @@ class CoOccurrenceWithContextTest {
     fun `It should serialize a populated context to JSON and read it back`() {
         // Given
         // When
-        val serialized = json.encodeToString(CoOccurrenceWithContext.serializer(), context)
+        val serialized = json.encodeToString(context)
 
         assertThat(serialized).isEqualTo(
             """
@@ -56,7 +57,7 @@ class CoOccurrenceWithContextTest {
             }
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString(CoOccurrenceWithContext.serializer(), serialized)).isEqualTo(context)
+        assertThat(json.decodeFromString<CoOccurrenceWithContext>(serialized)).isEqualTo(context)
     }
 
     @Test

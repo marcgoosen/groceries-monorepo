@@ -4,6 +4,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.avrokotlin.avro4k.Avro
 import kotlinx.datetime.Instant
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
@@ -23,7 +24,7 @@ class OrderTest {
     fun `It should serialize an order to JSON and read it back`() {
         // Given
         // When
-        val serialized = json.encodeToString(Order.serializer(), order)
+        val serialized = json.encodeToString(order)
 
         assertThat(serialized).isEqualTo(
             """
@@ -45,7 +46,7 @@ class OrderTest {
             }
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString(Order.serializer(), serialized)).isEqualTo(order)
+        assertThat(json.decodeFromString<Order>(serialized)).isEqualTo(order)
     }
 
     @Test

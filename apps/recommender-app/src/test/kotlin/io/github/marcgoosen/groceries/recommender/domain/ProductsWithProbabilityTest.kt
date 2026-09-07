@@ -4,6 +4,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.avrokotlin.avro4k.Avro
 import io.github.marcgoosen.groceries.shared.domain.Product
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
@@ -24,7 +25,7 @@ class ProductsWithProbabilityTest {
     fun `It should serialize a full recommendation to JSON and read it back`() {
         // Given
         // When
-        val serialized = json.encodeToString(ProductsWithProbability.serializer(), productsWithProbability)
+        val serialized = json.encodeToString(productsWithProbability)
 
         assertThat(serialized).isEqualTo(
             """
@@ -51,7 +52,7 @@ class ProductsWithProbabilityTest {
             """.trimIndent(),
         )
         assertThat(
-            json.decodeFromString(ProductsWithProbability.serializer(), serialized),
+            json.decodeFromString<ProductsWithProbability>(serialized),
         ).isEqualTo(productsWithProbability)
     }
 
