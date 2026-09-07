@@ -77,8 +77,8 @@ This runs ktlint (via Spotless), the test suite, and the Kover coverage gate.
 ./gradlew :apps:recommender-app:run
 ```
 
-The `run` task sets `MAIN_CREATE_TOPICS`, `MAIN_START_SIMULATOR` and local logging for you, so the app creates its
-topics and starts producing orders. Watch `groceries.related-products.v1` fill up in Kafka UI.
+The app creates its topics and starts producing orders by default; the `run` task only switches logging to the
+human-readable local format. Watch `groceries.related-products.v1` fill up in Kafka UI.
 
 ## Topics
 
@@ -91,8 +91,8 @@ topics and starts producing orders. Watch `groceries.related-products.v1` fill u
 ## Configuration
 
 [`application.yaml`](apps/recommender-app/src/main/resources/application.yaml) holds the defaults; everything
-deployment-specific is an environment variable. Defaults are the safe ones — the simulator and topic creation are
-**off** unless switched on.
+deployment-specific is an environment variable. The defaults are the local ones, so the app works the moment you run
+it — including from an IDE. A deployment turns the simulator off with `MAIN_START_SIMULATOR=false`.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -100,8 +100,8 @@ deployment-specific is an environment variable. Defaults are the safe ones — t
 | `KAFKA_SCHEMA_REGISTRY_URL` | `http://localhost:8081` | Schema Registry |
 | `KAFKA_SCHEMA_REGISTRY_AUTH` | *(empty)* | Schema Registry basic auth, as `key:secret` |
 | `KAFKA_SECURITY_PROTOCOL` | `PLAINTEXT` | Broker security protocol |
-| `MAIN_CREATE_TOPICS` | `false` | Create the configured topics on startup |
-| `MAIN_START_SIMULATOR` | `false` | Run the in-process order generator |
+| `MAIN_CREATE_TOPICS` | `true` | Create the configured topics on startup |
+| `MAIN_START_SIMULATOR` | `true` | Run the in-process order generator |
 | `LOGBACK_CONFIG_FILE` | `logback.xml` | `logback-local.xml` gives human-readable logs |
 | `PORT` | `8080` | HTTP port |
 | `ROCKSDB_*` | see yaml | Bounds on RocksDB off-heap and memtable memory |

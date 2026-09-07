@@ -1,7 +1,5 @@
 package io.github.marcgoosen.groceries.recommender
 
-import com.sksamuel.hoplite.ConfigLoaderBuilder
-import com.sksamuel.hoplite.addResourceSource
 import io.github.marcgoosen.groceries.recommender.kafkastreams.AvroSerdes
 import io.github.marcgoosen.groceries.recommender.kafkastreams.TopicCreator
 import io.github.marcgoosen.groceries.recommender.kafkastreams.TopicNameBuilder
@@ -24,12 +22,7 @@ object Dependencies {
         }
     }
 
-    val config by lazy {
-        ConfigLoaderBuilder.default()
-            .addResourceSource("/application.yaml")
-            .build()
-            .loadConfigOrThrow<Config>()
-    }
+    val config by lazy { loadConfig() }
 
     val prometheusRegistry by lazy {
         PrometheusMeterRegistry(PrometheusConfig.DEFAULT).also {

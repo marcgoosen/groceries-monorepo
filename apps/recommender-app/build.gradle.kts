@@ -36,6 +36,4 @@ application {
 
 tasks.named<JavaExec>("run") {
     environment("LOGBACK_CONFIG_FILE", "logback-local.xml")
-    environment("MAIN_CREATE_TOPICS", "true")
-    environment("MAIN_START_SIMULATOR", "true")
 }

@@ -2,9 +2,8 @@
 main:
   logback-config-file: "${LOGBACK_CONFIG_FILE:-logback.xml}"
   application-id: "${APPLICATION_ID:-groceries-recommender}"
-  application-version: "${APPLICATION_VERSION:-_v1}"
-  create-topics: "${MAIN_CREATE_TOPICS:-false}"
-  start-simulator: "${MAIN_START_SIMULATOR:-false}"
+  create-topics: "${MAIN_CREATE_TOPICS:-true}"
+  start-simulator: "${MAIN_START_SIMULATOR:-true}"
   port: "${PORT:-8080}"
 topics:
   name:
@@ -31,7 +30,7 @@ topics:
         cleanup.policy: "compact"
         retention.ms: -1
 kafka:
-  application.id: "${main.application-id}${main.application-version}"
+  application.id: "${APPLICATION_ID:-groceries-recommender}${APPLICATION_VERSION:-_v1}"
   bootstrap.servers: "${KAFKA_BOOTSTRAP_SERVERS:-localhost:19092}"
   auto.offset.reset: "earliest"
   default.key.serde: "com.github.avrokotlin.avro4k.kafka.confluent.ReflectAvro4kKafkaSerde"
