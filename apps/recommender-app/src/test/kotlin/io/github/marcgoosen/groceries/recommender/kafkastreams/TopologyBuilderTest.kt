@@ -2,7 +2,6 @@ package io.github.marcgoosen.groceries.recommender.kafkastreams
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import com.github.avrokotlin.avro4k.ExperimentalAvro4kApi
 import io.github.marcgoosen.groceries.recommender.domain.ProductWithProbability
 import io.github.marcgoosen.groceries.recommender.domain.ProductsWithProbability
 import io.github.marcgoosen.groceries.recommender.order
@@ -15,8 +14,6 @@ import org.apache.kafka.streams.TestInputTopic
 import org.apache.kafka.streams.TestOutputTopic
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-
-@OptIn(ExperimentalAvro4kApi::class)
 class TopologyBuilderTest : BaseTopologyTest() {
     private lateinit var orderInputTopic: TestInputTopic<OrderId, Order>
     private lateinit var productInputTopic: TestInputTopic<ProductId, Product>

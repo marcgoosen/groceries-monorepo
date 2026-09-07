@@ -2,7 +2,6 @@ package io.github.marcgoosen.groceries.recommender.kafkastreams
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import com.github.avrokotlin.avro4k.ExperimentalAvro4kApi
 import io.github.marcgoosen.groceries.recommender.domain.CoOccurrence
 import io.github.marcgoosen.groceries.shared.domain.ProductId
 import org.apache.kafka.streams.TestInputTopic
@@ -12,8 +11,6 @@ import org.junit.jupiter.api.Test
 
 private const val INPUT_TOPIC = "input-pairs"
 private const val OUTPUT_TOPIC = "output-counts"
-
-@OptIn(ExperimentalAvro4kApi::class)
 class CountCoOccurrencesTest : BaseTopologyTest() {
     private lateinit var inputTopic: TestInputTopic<ProductId, ProductId>
     private lateinit var outputTopic: TestOutputTopic<ProductId, CoOccurrence>

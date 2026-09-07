@@ -2,7 +2,6 @@ package io.github.marcgoosen.groceries.recommender.kafkastreams
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import com.github.avrokotlin.avro4k.ExperimentalAvro4kApi
 import io.github.marcgoosen.groceries.recommender.domain.CoDistribution
 import io.github.marcgoosen.groceries.recommender.domain.CoOccurrence
 import io.github.marcgoosen.groceries.shared.domain.OrderId
@@ -13,8 +12,6 @@ import org.junit.jupiter.api.Test
 
 private const val INPUT_TOPIC = "input-co-occurrence"
 private const val OUTPUT_TOPIC = "output-distribution"
-
-@OptIn(ExperimentalAvro4kApi::class)
 class ToCoDistributionTest : BaseTopologyTest() {
     private lateinit var inputTopic: TestInputTopic<OrderId, CoOccurrence>
     private lateinit var outputTopic: TestOutputTopic<OrderId, CoDistribution>
