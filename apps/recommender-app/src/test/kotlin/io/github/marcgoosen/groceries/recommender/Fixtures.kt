@@ -7,12 +7,15 @@ import io.github.serpro69.kfaker.Faker
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 
+/** Kafka carries timestamps as epoch millis, so fixtures must not carry precision the round-trip would lose. */
 fun Instant.withoutMicroseconds() = Instant.fromEpochMilliseconds(toEpochMilliseconds())
 
 fun <T> Faker.randomList(maxSize: Int = 5, fn: () -> T) = (1..random.nextInt(1, maxSize)).map { fn() }
 
 fun Faker.orderId() = random.nextUUID()
+
 fun Faker.productId() = random.nextUUID()
+
 fun Faker.orderLine() = OrderLine(
     productId = random.nextUUID(),
     price = random.nextDouble(),

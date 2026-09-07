@@ -12,17 +12,26 @@ plugins {
 dependencies {
     implementation(platform(libs.kotlin.bom))
     implementation(platform(libs.kotlinx.coroutines.bom))
-    implementation(platform(libs.kotest.bom))
 
     testImplementation(platform(libs.junit.bom))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation(libs.mockk)
-    testImplementation("io.kotest:kotest-assertions-core")
+    testImplementation(libs.assertk)
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+kover {
+    reports {
+        verify {
+            rule {
+                minBound(60)
+            }
+        }
+    }
 }
 
 kotlin {

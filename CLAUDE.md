@@ -65,7 +65,7 @@ Clean, concise, no fluff. Functional first, immutable by default.
 - A bounding `Semaphore` of `null` means unbounded — gate it behind `count.takeIf { it > 0 }?.let { Semaphore(it) }`.
 
 ### Types over primitives
-- **Value classes** for identifiers and bounded values (`Email`, `UserId`, `Money`). No raw `String`/`Int` for domain concepts.
+- **Typealiases** (`ProductId`, `OrderId`) to name identifiers in signatures. Value classes are not an option here — avro4k does not handle them well across the serde and Schema Registry path.
 - **Sealed hierarchies** for things-with-variants. Pattern-match exhaustively in `when`.
 - **Nullable types** (`T?`) over sentinel values. Avoid `Optional<T>`.
 
@@ -112,6 +112,7 @@ Clean, concise, no fluff. Functional first, immutable by default.
 - **One test file per production class**, named `ClassNameTest.kt`, mirroring the production package under `src/test/kotlin/...`.
 - **No catch-all test files** (`MiscTest.kt`). One class → one file.
 - **Every production class with real logic has a matching test file.** Extensions → `FooExtensionsTest.kt`; mappers → mapper test.
+- **Kafka Streams operators get one file per operator**, named after the operator (`SelectTopNTest.kt`), not one file for the whole `Extensions.kt`. Each needs its own `TopologyTestDriver` wiring, so a shared file would be unreadable.
 - **Skip trivial data classes.** Asserting Kotlin's generated getters/`equals`/defaults is zero signal. (Exception: a `@Serializable` data class with defaulted fields — add the [all-defaults round-trip](#pattern-all-defaults-round-trip) to keep coverage honest.)
 
 ### Naming
