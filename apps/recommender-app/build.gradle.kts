@@ -4,7 +4,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":libs:shared"))
+    implementation(projects.libs.shared)
     implementation(libs.kafka.streams)
     implementation(libs.slf4j)
     implementation(libs.kotlinx.serialization.json)
