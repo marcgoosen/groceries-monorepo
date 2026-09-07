@@ -44,11 +44,6 @@ class BoundedMemoryRocksDBConfig : RocksDBConfigSetter {
             logger.info { "Using MEMTABLE_SIZE=$this Mb" }
             options.setWriteBufferSize(this * MB_FACTOR)
         }
-
-        // Enable compression (optional). Compression can decrease the required storage
-        // and increase the CPU usage of the machine. For CompressionType values, see
-        // https://javadoc.io/static/org.rocksdb/rocksdbjni/6.4.6/org/rocksdb/CompressionType.html.
-        // options.setCompressionType(CompressionType.LZ4_COMPRESSION) Disabling this for now because we want less cpu usage.
     }
 
     override fun close(storeName: String, options: Options) {
@@ -59,15 +54,14 @@ class BoundedMemoryRocksDBConfig : RocksDBConfigSetter {
     @Synchronized
     fun initCacheOnce(configs: Map<String, Any>) {
         if (cache != null && writeBufferManager != null) {
-            logger.warn { "RocksDB: cache and write buffer manager are already initialized, this shoudl not happen" }
-            // already initialized
+            logger.warn { "RocksDB: cache and write buffer manager are already initialized, this should not happen" }
             return
         }
         logger.info { "RocksDB: Initializing cache and write buffer manager" }
-        val offHeapMb = configs[ROCKSDB_TOTAL_OFF_HEAP_SIZE_MB]?.parseAsLong() ?: 16
-        val totalMemTableMemMb = configs[ROCKSDB_TOTAL_MEMTABLE_MB]?.parseAsLong() ?: 16
+        val offHeapMb = configs[ROCKSDB_TOTAL_OFF_HEAP_SIZE_MB]?.parseAsLong() ?: DEFAULT_MB
+        val totalMemTableMemMb = configs[ROCKSDB_TOTAL_MEMTABLE_MB]?.parseAsLong() ?: DEFAULT_MB
         logger.info { "Using TOTAL_OFF_HEAP_MEMORY=$offHeapMb Mb" }
-        logger.info { "USing TOTAL_MEMTABLE_MEMORY=$totalMemTableMemMb Mb" }
+        logger.info { "Using TOTAL_MEMTABLE_MEMORY=$totalMemTableMemMb Mb" }
         if (cache == null) {
             cache = LRUCache(offHeapMb * MB_FACTOR)
         }
@@ -84,6 +78,7 @@ class BoundedMemoryRocksDBConfig : RocksDBConfigSetter {
         private const val BYTE_FACTOR: Long = 1
         private const val KB_FACTOR = 1024 * BYTE_FACTOR
         private const val MB_FACTOR = 1024 * KB_FACTOR
+        private const val DEFAULT_MB: Long = 16
         private var cache: Cache? = null
         private var writeBufferManager: WriteBufferManager? = null
 
@@ -91,7 +86,8 @@ class BoundedMemoryRocksDBConfig : RocksDBConfigSetter {
             RocksDB.loadLibrary()
         }
     }
-
-    fun Any.parseAsLong(): Long? = toString().takeIf { it.isNotEmpty() }?.toLong()
-    fun Any.parseAsInt(): Int? = toString().takeIf { it.isNotEmpty() }?.toInt()
 }
+
+private fun Any.parseAsLong(): Long? = toString().takeIf { it.isNotEmpty() }?.toLong()
+
+private fun Any.parseAsInt(): Int? = toString().takeIf { it.isNotEmpty() }?.toInt()

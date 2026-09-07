@@ -1,206 +1,419 @@
 package io.github.marcgoosen.groceries.recommender.domain
 
+import assertk.assertThat
+import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
+import assertk.assertions.isNull
+import assertk.assertions.isTrue
 import io.github.marcgoosen.groceries.shared.domain.Order
 import io.github.marcgoosen.groceries.shared.domain.OrderLine
 import io.github.marcgoosen.groceries.shared.domain.Product
-import io.kotest.matchers.shouldBe
-import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
 class ExtensionsTest {
+    private val milk = Product("p1", "Milk", 2.0)
+    private val bread = Product("p2", "Bread", 1.5)
+    private val eggs = Product("p3", "Eggs", 3.0)
 
-    private val p1 = Product("p1", "Product 1", 10.0)
-    private val p2 = Product("p2", "Product 2", 20.0)
-    private val p3 = Product("p3", "Product 3", 30.0)
+    private val order = Order(
+        orderId = "o1",
+        timestamp = Instant.parse("2026-01-15T09:30:00Z"),
+        orderLines = listOf(
+            OrderLine(milk.productId, milk.price, 1),
+            OrderLine(bread.productId, bread.price, 1),
+        ),
+    )
 
-    private val order =
-        Order(
-            orderId = "o1",
-            timestamp = Clock.System.now(),
-            orderLines =
-            listOf(
-                OrderLine(p1.productId, p1.price, 1),
-                OrderLine(p2.productId, p2.price, 1),
-            ),
-        )
+    @Nested
+    inner class ProductIds {
+        @Test
+        fun `It should list every product in the order without duplicates`() {
+            // Given
+            val orderWithDuplicate = order.copy(
+                orderLines = order.orderLines + OrderLine(milk.productId, milk.price, 2),
+            )
 
-    @Test
-    fun `It should compute totalCount and increment with productId`() {
-        val co = CoOccurrence(mapOf(p1.productId to 2))
-        co.totalCount shouldBe 2
+            // When
+            val productIds = orderWithDuplicate.productIds
 
-        val c2 = co + p2.productId
-        c2.countsByProduct[p2.productId] shouldBe 1
-        c2.totalCount shouldBe 3
-
-        val c3 = c2 + p1.productId
-        c3.countsByProduct[p1.productId] shouldBe 3
-        c3.totalCount shouldBe 4
+            assertThat(productIds).isEqualTo(setOf(milk.productId, bread.productId))
+        }
     }
 
-    @Test
-    fun `It should subtract productId and productIds set`() {
-        val co = CoOccurrence(mapOf(p1.productId to 2, p2.productId to 1))
-        val withoutP1 = co - p1.productId
-        withoutP1.countsByProduct.containsKey(p1.productId) shouldBe false
+    @Nested
+    inner class TotalCount {
+        @Test
+        fun `It should sum the counts across all co-occurring products`() {
+            // Given
+            val coOccurrence = CoOccurrence(mapOf(milk.productId to 2, bread.productId to 3))
 
-        val withoutSet = co - setOf(p2.productId)
-        withoutSet.countsByProduct.containsKey(p2.productId) shouldBe false
+            // When
+            val totalCount = coOccurrence.totalCount
+
+            assertThat(totalCount).isEqualTo(5)
+        }
+
+        @Test
+        fun `It should be zero when nothing co-occurred`() {
+            // Given
+            val coOccurrence = CoOccurrence()
+
+            // When
+            val totalCount = coOccurrence.totalCount
+
+            assertThat(totalCount).isEqualTo(0)
+        }
     }
 
-    @Test
-    fun `It should combine co-occurrences by plus and rollup a list`() {
-        val a = CoOccurrence(mapOf(p1.productId to 1, p2.productId to 1))
-        val b = CoOccurrence(mapOf(p1.productId to 2, p3.productId to 1))
-        val combined = a + b
-        combined.countsByProduct[p1.productId] shouldBe 3
-        combined.countsByProduct[p2.productId] shouldBe 1
-        combined.countsByProduct[p3.productId] shouldBe 1
+    @Nested
+    inner class CoOccurrencePlusProductId {
+        @Test
+        fun `It should start a count for a product seen for the first time`() {
+            // Given
+            val coOccurrence = CoOccurrence()
 
-        val listRollup = listOf(a, b).rollup()
-        listRollup shouldBe combined
+            // When
+            val incremented = coOccurrence + milk.productId
+
+            assertThat(incremented).isEqualTo(CoOccurrence(mapOf(milk.productId to 1)))
+        }
+
+        @Test
+        fun `It should raise the count of a product seen before`() {
+            // Given
+            val coOccurrence = CoOccurrence(mapOf(milk.productId to 2))
+
+            // When
+            val incremented = coOccurrence + milk.productId
+
+            assertThat(incremented).isEqualTo(CoOccurrence(mapOf(milk.productId to 3)))
+        }
     }
 
-    @Test
-    fun `It should convert to CoDistribution and choose topN`() {
-        val co = CoOccurrence(mapOf(p1.productId to 2, p2.productId to 1))
-        val dist = co.toCoDistribution()
-        dist.probabilityByProductId[p1.productId] shouldBe (2.0 / 3.0)
-        dist.probabilityByProductId[p2.productId] shouldBe (1.0 / 3.0)
+    @Nested
+    inner class CoOccurrenceMinus {
+        @Test
+        fun `It should drop a single product`() {
+            // Given
+            val coOccurrence = CoOccurrence(mapOf(milk.productId to 2, bread.productId to 1))
 
-        val top1 = dist.topN(1)
-        top1.probabilityByProductId.size shouldBe 1
-        top1.probabilityByProductId.keys.first() shouldBe p1.productId
+            // When
+            val remaining = coOccurrence - milk.productId
+
+            assertThat(remaining).isEqualTo(CoOccurrence(mapOf(bread.productId to 1)))
+        }
+
+        @Test
+        fun `It should drop every product in the given set`() {
+            // Given
+            val coOccurrence = CoOccurrence(mapOf(milk.productId to 2, bread.productId to 1, eggs.productId to 4))
+
+            // When
+            val remaining = coOccurrence - setOf(milk.productId, bread.productId)
+
+            assertThat(remaining).isEqualTo(CoOccurrence(mapOf(eggs.productId to 4)))
+        }
     }
 
-    @Test
-    fun `It should convert any empty CoDistribution and choose topN`() {
-        val co = CoOccurrence()
-        val dist = co.toCoDistribution()
+    @Nested
+    inner class CoOccurrencePlusCoOccurrence {
+        @Test
+        fun `It should add up the counts of products present in both`() {
+            // Given
+            val first = CoOccurrence(mapOf(milk.productId to 1, bread.productId to 1))
+            val second = CoOccurrence(mapOf(milk.productId to 2, eggs.productId to 1))
 
-        dist shouldBe CoDistribution()
+            // When
+            val combined = first + second
+
+            assertThat(combined).isEqualTo(
+                CoOccurrence(mapOf(milk.productId to 3, bread.productId to 1, eggs.productId to 1)),
+            )
+        }
     }
 
-    @Test
-    fun `It should get productIds from Order`() {
-        order.productIds shouldBe setOf(p1.productId, p2.productId)
+    @Nested
+    inner class Rollup {
+        @Test
+        fun `It should merge a list of co-occurrences into one`() {
+            // Given
+            val coOccurrences = listOf(
+                CoOccurrence(mapOf(milk.productId to 1)),
+                CoOccurrence(mapOf(milk.productId to 2, bread.productId to 1)),
+            )
+
+            // When
+            val rolledUp = coOccurrences.rollup()
+
+            assertThat(rolledUp).isEqualTo(CoOccurrence(mapOf(milk.productId to 3, bread.productId to 1)))
+        }
+
+        @Test
+        fun `It should be empty for no co-occurrences`() {
+            // Given
+            val coOccurrences = emptyList<CoOccurrence>()
+
+            // When
+            val rolledUp = coOccurrences.rollup()
+
+            assertThat(rolledUp).isEqualTo(CoOccurrence())
+        }
+
+        @Test
+        fun `It should exclude the products the order already contains`() {
+            // Given
+            val context = CoOccurrencesWithContext(
+                order = order,
+                coOccurrences = listOf(
+                    CoOccurrence(mapOf(milk.productId to 1, eggs.productId to 1)),
+                    CoOccurrence(mapOf(bread.productId to 1, eggs.productId to 1)),
+                ),
+            )
+
+            // When
+            val rolledUp = context.rollup()
+
+            assertThat(rolledUp).isEqualTo(CoOccurrence(mapOf(eggs.productId to 2)))
+        }
     }
 
-    @Test
-    fun `It should check if CoOccurrencesWithContext is complete`() {
-        val coc =
-            CoOccurrencesWithContext(
+    @Nested
+    inner class ToCoDistribution {
+        @Test
+        fun `It should express each count as a share of the total`() {
+            // Given
+            val coOccurrence = CoOccurrence(mapOf(milk.productId to 2, bread.productId to 1))
+
+            // When
+            val distribution = coOccurrence.toCoDistribution()
+
+            assertThat(distribution).isEqualTo(
+                CoDistribution(mapOf(milk.productId to 2.0 / 3.0, bread.productId to 1.0 / 3.0)),
+            )
+        }
+
+        @Test
+        fun `It should be empty when nothing co-occurred`() {
+            // Given
+            val coOccurrence = CoOccurrence()
+
+            // When
+            val distribution = coOccurrence.toCoDistribution()
+
+            assertThat(distribution).isEqualTo(CoDistribution())
+        }
+    }
+
+    @Nested
+    inner class TopN {
+        @Test
+        fun `It should keep the most probable products, most probable first`() {
+            // Given
+            val distribution = CoDistribution(
+                mapOf(milk.productId to 0.2, bread.productId to 0.5, eggs.productId to 0.3),
+            )
+
+            // When
+            val top = distribution.topN(2)
+
+            assertThat(top).isEqualTo(CoDistribution(mapOf(bread.productId to 0.5, eggs.productId to 0.3)))
+        }
+
+        @Test
+        fun `It should keep everything when asked for more than it holds`() {
+            // Given
+            val distribution = CoDistribution(mapOf(milk.productId to 1.0))
+
+            // When
+            val top = distribution.topN(5)
+
+            assertThat(top).isEqualTo(distribution)
+        }
+    }
+
+    @Nested
+    inner class WithContext {
+        @Test
+        fun `It should keep the co-occurrence it was given`() {
+            // Given
+            val coOccurrence = CoOccurrence(mapOf(milk.productId to 1))
+
+            // When
+            val context = coOccurrence.withContext(order)
+
+            assertThat(context).isEqualTo(CoOccurrenceWithContext(coOccurrence, order))
+        }
+
+        @Test
+        fun `It should substitute an empty co-occurrence when the product has none yet`() {
+            // Given
+            val coOccurrence: CoOccurrence? = null
+
+            // When
+            val context = coOccurrence.withContext(order)
+
+            assertThat(context).isEqualTo(CoOccurrenceWithContext(CoOccurrence(), order))
+        }
+    }
+
+    @Nested
+    inner class CoOccurrencesWithContextCompleteness {
+        @Test
+        fun `It should be complete once every ordered product contributed`() {
+            // Given
+            val context = CoOccurrencesWithContext(
                 order = order,
                 coOccurrences = listOf(CoOccurrence(), CoOccurrence()),
             )
-        coc.isComplete() shouldBe true
 
-        val incomplete = coc.copy(coOccurrences = listOf(CoOccurrence()))
-        incomplete.isComplete() shouldBe false
-    }
+            // When
+            val complete = context.isComplete()
 
-    @Test
-    fun `It should add CoOccurrence to CoOccurrencesWithContext`() {
-        val coc1 =
-            CoOccurrencesWithContext(
-                order = order,
-                coOccurrences = listOf(CoOccurrence(mapOf(p1.productId to 1))),
+            assertThat(complete).isTrue()
+        }
+
+        @Test
+        fun `It should be incomplete while a product is still missing`() {
+            // Given
+            val context = CoOccurrencesWithContext(order = order, coOccurrences = listOf(CoOccurrence()))
+
+            // When
+            val complete = context.isComplete()
+
+            assertThat(complete).isFalse()
+        }
+
+        @Test
+        fun `It should be complete for the initial empty aggregate without an order`() {
+            // Given
+            val context = CoOccurrencesWithContext()
+
+            // When
+            val complete = context.isComplete()
+
+            assertThat(complete).isTrue()
+        }
+
+        @Test
+        fun `It should take the order from the co-occurrence being added`() {
+            // Given
+            val context = CoOccurrencesWithContext()
+            val added = CoOccurrenceWithContext(CoOccurrence(mapOf(eggs.productId to 1)), order)
+
+            // When
+            val aggregate = context + added
+
+            assertThat(aggregate).isEqualTo(
+                CoOccurrencesWithContext(order = order, coOccurrences = listOf(added.coOccurrence)),
             )
-        val singular = CoOccurrenceWithContext(CoOccurrence(mapOf(p2.productId to 1)), order)
-
-        val result = coc1 + singular
-        result.order shouldBe order
-        result.coOccurrences.size shouldBe 2
-        result.coOccurrences[1].countsByProduct[p2.productId] shouldBe 1
+        }
     }
 
-    @Test
-    fun `It should rollup CoOccurrencesWithContext and remove order productIds`() {
-        val a = CoOccurrence(mapOf(p1.productId to 1, p3.productId to 1))
-        val b = CoOccurrence(mapOf(p2.productId to 1, p3.productId to 1))
-        val coc = CoOccurrencesWithContext(order = order, coOccurrences = listOf(a, b))
+    @Nested
+    inner class OrderIdOfCoOccurrenceWithContext {
+        @Test
+        fun `It should report the order the context belongs to`() {
+            // Given
+            val context = CoOccurrenceWithContext(CoOccurrence(), order)
 
-        // order has p1 and p2
-        // rollup of a+b has p1, p2, p3
-        // after rollup() and subtract order productIds, only p3 should remain
-        val result = coc.rollup()
-        result.countsByProduct.keys shouldBe setOf(p3.productId)
-        result.countsByProduct[p3.productId] shouldBe 2
+            // When
+            val orderId = context.orderId
+
+            assertThat(orderId).isEqualTo(order.orderId)
+        }
     }
 
-    @Test
-    fun `It should create CoOccurrenceWithContext from nullable CoOccurrence`() {
-        val co: CoOccurrence? = null
-        val coc = co.withContext(order)
-        coc.coOccurrence shouldBe CoOccurrence()
-        coc.order shouldBe order
+    @Nested
+    inner class ProductsWithProbabilityContextCompleteness {
+        @Test
+        fun `It should be complete once as many products arrived as were expected`() {
+            // Given
+            val context = ProductsWithProbabilityContext(listOf(milk.withProbability(0.5)), 1)
 
-        val nonNullCo = CoOccurrence(mapOf(p1.productId to 1))
-        val coc2 = nonNullCo.withContext(order)
-        coc2.coOccurrence shouldBe nonNullCo
-    }
+            // When
+            val complete = context.isComplete()
 
-    @Test
-    fun `It should get orderId from CoOccurrenceWithContext`() {
-        val coc = CoOccurrenceWithContext(CoOccurrence(), order)
-        coc.orderId shouldBe order.orderId
-    }
+            assertThat(complete).isTrue()
+        }
 
-    @Test
-    fun `It should check if ProductsWithProbabilityContext is complete`() {
-        val pwpc =
-            ProductsWithProbabilityContext(
-                productsWithProbabilities = listOf(p1.withProbability(0.5)),
-                expectedSize = 1,
+        @Test
+        fun `It should be incomplete while fewer products arrived than expected`() {
+            // Given
+            val context = ProductsWithProbabilityContext(listOf(milk.withProbability(0.5)), 2)
+
+            // When
+            val complete = context.isComplete()
+
+            assertThat(complete).isFalse()
+        }
+
+        @Test
+        fun `It should take the expected size from the product being added`() {
+            // Given
+            val context = ProductsWithProbabilityContext()
+            val added = ProductWithProbabilityContext(milk.withProbability(0.5), order.orderId, 2)
+
+            // When
+            val aggregate = context + added
+
+            assertThat(aggregate).isEqualTo(
+                ProductsWithProbabilityContext(listOf(milk.withProbability(0.5)), 2),
             )
-        pwpc.isComplete() shouldBe true
-
-        val pwpc2 = pwpc.copy(expectedSize = 2)
-        pwpc2.isComplete() shouldBe false
+        }
     }
 
-    @Test
-    fun `It should convert ProductsWithProbabilityContext to ProductsWithProbability`() {
-        val pwp = p1.withProbability(0.5)
-        val pwpc =
-            ProductsWithProbabilityContext(
-                productsWithProbabilities = listOf(pwp, null),
-                expectedSize = 2,
+    @Nested
+    inner class ToProductsWithProbability {
+        @Test
+        fun `It should leave out the products that could not be looked up`() {
+            // Given
+            val context = ProductsWithProbabilityContext(listOf(milk.withProbability(0.5), null), 2)
+
+            // When
+            val products = context.toProductsWithProbability()
+
+            assertThat(products).isEqualTo(ProductsWithProbability(listOf(milk.withProbability(0.5))))
+        }
+    }
+
+    @Nested
+    inner class WithProbability {
+        @Test
+        fun `It should pair the product with its probability`() {
+            // Given
+            // When
+            val productWithProbability = milk.withProbability(0.7)
+
+            assertThat(productWithProbability).isEqualTo(ProductWithProbability(milk, 0.7))
+        }
+    }
+
+    @Nested
+    inner class WithProduct {
+        @Test
+        fun `It should pair the looked-up product with the probability from the context`() {
+            // Given
+            val probabilityContext = ProbabilityContext(0.8, order.orderId, 2)
+
+            // When
+            val context = probabilityContext.withProduct(milk)
+
+            assertThat(context).isEqualTo(
+                ProductWithProbabilityContext(milk.withProbability(0.8), order.orderId, 2),
             )
-        val result = pwpc.toProductsWithProbability()
-        result.productsWithProbabilities shouldBe listOf(pwp)
-    }
+        }
 
-    @Test
-    fun `It should add ProductWithProbabilityContext to ProductsWithProbabilityContext`() {
-        val pwp1 = p1.withProbability(0.5)
-        val pwp2 = p2.withProbability(0.3)
-        val context = ProductsWithProbabilityContext(listOf(pwp1), 2)
-        val singular = ProductWithProbabilityContext(pwp2, "o1", 2)
+        @Test
+        fun `It should carry no product when the product is unknown`() {
+            // Given
+            val probabilityContext = ProbabilityContext(0.8, order.orderId, 2)
 
-        val result = context + singular
-        result.expectedSize shouldBe 2
-        result.productsWithProbabilities shouldBe listOf(pwp1, pwp2)
-    }
+            // When
+            val context = probabilityContext.withProduct(null)
 
-    @Test
-    fun `It should create ProductWithProbability from Product`() {
-        val pwp = p1.withProbability(0.7)
-        pwp.product shouldBe p1
-        pwp.probability shouldBe 0.7
-    }
-
-    @Test
-    fun `It should create ProductWithProbabilityContext from ProbabilityContext`() {
-        val probCtx = ProbabilityContext(0.8, "o1", 2)
-        val result = probCtx.withProduct(p1)
-
-        result.orderId shouldBe "o1"
-        result.expectedSize shouldBe 2
-        result.productWithProbability?.product shouldBe p1
-        result.productWithProbability?.probability shouldBe 0.8
-
-        val nullResult = probCtx.withProduct(null)
-        nullResult.productWithProbability shouldBe null
+            assertThat(context.productWithProbability).isNull()
+        }
     }
 }

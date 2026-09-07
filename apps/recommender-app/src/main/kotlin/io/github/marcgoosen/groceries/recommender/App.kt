@@ -33,6 +33,9 @@ fun main(): Unit = with(Dependencies) {
     }
 
     logger.info { topology.describe() }
+
+    // A no-op on Kubernetes, where pods start with an empty disk anyway. It is here so that a local run starts from
+    // a clean set of state stores instead of whatever the previous run left behind.
     streams.cleanUp()
     streams.start()
 
@@ -44,7 +47,7 @@ fun main(): Unit = with(Dependencies) {
         }
 
     engine.addShutdownHook {
-        println("Closing, cleaning up...")
+        logger.info { "Shutting down ${config.main.applicationId}" }
         streams.close()
         simulator.close()
     }
@@ -66,11 +69,3 @@ fun configureLogback(filePath: String) {
 
 private fun loadConfigFile(filePath: String) = Thread.currentThread().contextClassLoader.getResourceAsStream(filePath)
     ?: throw IllegalArgumentException("File not found on classpath: $filePath")
-
-fun Config.scramble() = copy(
-    kafka =
-    kafka +
-        mapOf(
-            "sasl.jaas.config" to "********",
-        ),
-)

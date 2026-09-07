@@ -8,6 +8,8 @@ dependencies {
     implementation(libs.kafka.streams)
     implementation(libs.slf4j)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.faker)
 
     // Logging and monitoring dependencies
     implementation(libs.kotlin.logging)
@@ -26,9 +28,14 @@ dependencies {
     // Test dependencies
     testImplementation(libs.kafka.streams.test.utils)
     testImplementation(libs.ktor.server.test.host)
-    implementation(libs.faker)
 }
 
 application {
     mainClass.set("io.github.marcgoosen.groceries.recommender.AppKt")
+}
+
+tasks.named<JavaExec>("run") {
+    environment("LOGBACK_CONFIG_FILE", "logback-local.xml")
+    environment("MAIN_CREATE_TOPICS", "true")
+    environment("MAIN_START_SIMULATOR", "true")
 }

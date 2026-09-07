@@ -1,4 +1,5 @@
 [versions]
+assertk = "0.28.1"
 avro = "1.12.0"
 avro4k = "2.5.4"
 confluent-kafka = "8.0.0"
@@ -10,7 +11,6 @@ java = "21"
 junit-jupiter = "5.11.3"
 kafka = "8.0.0-ccs"
 kafka-schema-registry-plugin = "2.4.0"
-kotest = "5.9.1"
 kotlin-core = "2.2.20"
 kotlin-gradle-plugin = "2.0.21"
 kotlin-logging = "7.0.0"
@@ -28,6 +28,7 @@ spotless = "8.0.0"
 test-containers = "1.20.4"
 
 [libraries]
+assertk = { module = "com.willowtreeapps.assertk:assertk", version.ref = "assertk" }
 avro = { module = "org.apache.avro:avro", version.ref = "avro" }
 avro4k-core = { module = "com.github.avro-kotlin.avro4k:avro4k-core", version.ref = "avro4k" }
 avro4k-confluent-kafka-serializer = { module = "com.github.avro-kotlin.avro4k:avro4k-confluent-kafka-serializer", version.ref = "avro4k" }
@@ -42,7 +43,6 @@ kafka-schema-registry-client = { module = "io.confluent:kafka-schema-registry-cl
 kafka-streams = { module = "org.apache.kafka:kafka-streams", version.ref = "kafka" }
 kafka-streams-avro-serde = { module = "io.confluent:kafka-streams-avro-serde", version.ref = "confluent-kafka" }
 kafka-streams-test-utils = { module = "org.apache.kafka:kafka-streams-test-utils", version.ref = "kafka" }
-kotest-bom = { group = "io.kotest", name = "kotest-bom", version.ref = "kotest" }
 kotlin-bom = { group = "org.jetbrains.kotlin", name = "kotlin-bom", version.ref = "kotlin-core" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin-gradle-plugin" }
 kotlinx-coroutines-bom = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-bom", version.ref = "kotlinx-coroutines" }

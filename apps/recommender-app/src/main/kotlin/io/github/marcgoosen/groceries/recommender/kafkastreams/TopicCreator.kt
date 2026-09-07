@@ -4,27 +4,46 @@ import io.github.marcgoosen.groceries.recommender.Config
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.NewTopic
-import java.util.*
+import org.apache.kafka.common.KafkaFuture
+import org.apache.kafka.common.errors.TopicExistsException
+import java.util.Optional
 
 private val logger = KotlinLogging.logger {}
 
 class TopicCreator(private val admin: Admin, private val topicNameBuilder: TopicNameBuilder) {
     fun createTopics(create: Map<String, Config.TopicConfig>) {
-        admin.createTopics(
-            create.map { (topicName, topicConfig) ->
-                NewTopic(
-                    topicNameBuilder.build(
-                        Topic.parse(topicName) ?: throw IllegalArgumentException("Unknown topic: $topicName"),
-                    ),
-                    Optional.ofNullable(topicConfig.partitions),
-                    Optional.ofNullable(topicConfig.replicationFactor),
-                )
-                    .configs(topicConfig.configs)
-            },
-        ).values().forEach { (topic, future) ->
-            runCatching { future.get() }
-                .onFailure { logger.debug { "Topic $topic already exists" } }
-                .onSuccess { logger.info { "Created topic $topic" } }
+        val failed = admin.createTopics(create.map { (name, topicConfig) -> newTopic(name, topicConfig) })
+            .values()
+            .filterNot { (topic, future) -> isCreated(topic, future) }
+            .keys
+
+        check(failed.isEmpty()) { "Could not create topics: $failed" }
+    }
+
+    private fun newTopic(name: String, topicConfig: Config.TopicConfig) = NewTopic(
+        topicNameBuilder.build(Topic.parse(name) ?: throw IllegalArgumentException("Unknown topic: $name")),
+        Optional.ofNullable(topicConfig.partitions),
+        Optional.ofNullable(topicConfig.replicationFactor),
+    )
+        .configs(topicConfig.configs)
+
+    private fun isCreated(topic: String, future: KafkaFuture<Void>): Boolean {
+        val failure = runCatching { future.get() }.exceptionOrNull()
+        return when {
+            failure == null -> {
+                logger.info { "Created topic $topic" }
+                true
+            }
+
+            failure.cause is TopicExistsException -> {
+                logger.debug { "Topic $topic already exists" }
+                true
+            }
+
+            else -> {
+                logger.warn(failure) { "Failed to create topic $topic" }
+                false
+            }
         }
     }
 }
