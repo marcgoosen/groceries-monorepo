@@ -6,6 +6,8 @@ import com.github.avrokotlin.avro4k.ExperimentalAvro4kApi
 import com.github.avrokotlin.avro4k.serializer.AvroSerializer
 import com.github.avrokotlin.avro4k.serializer.SchemaSupplierContext
 import kotlinx.datetime.Instant
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import org.apache.avro.LogicalTypes
 import org.apache.avro.Schema
 import org.apache.avro.SchemaBuilder
@@ -17,6 +19,12 @@ class InstantSerializer : AvroSerializer<Instant>(Instant::javaClass.name) {
     }
 
     override fun deserializeAvro(decoder: AvroDecoder): Instant = Instant.fromEpochMilliseconds(decoder.decodeLong())
+
+    override fun serializeGeneric(encoder: Encoder, value: Instant) {
+        encoder.encodeLong(value.toEpochMilliseconds())
+    }
+
+    override fun deserializeGeneric(decoder: Decoder): Instant = Instant.fromEpochMilliseconds(decoder.decodeLong())
 
     @OptIn(ExperimentalAvro4kApi::class)
     override fun getSchema(context: SchemaSupplierContext): Schema {

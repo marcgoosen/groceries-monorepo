@@ -3,6 +3,8 @@ package io.github.marcgoosen.groceries.shared.domain
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.avrokotlin.avro4k.Avro
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
 /**
@@ -10,25 +12,22 @@ import org.junit.jupiter.api.Test
  * whoever maintains the catalogue.
  */
 class ProductTest {
-    private val milk = Product(productId = "p1", name = "Milk", price = 2.0)
+    private val json = Json { prettyPrint = true }
+
+    private val product = Product(productId = "p1", name = "Milk", price = 2.0)
 
     @Test
-    fun `It should round-trip through Avro`() {
+    fun `It should round-trip a product through JSON`() {
         // Given
         // When
-        val roundTripped = Avro.decodeFromByteArray(
-            Product.serializer(),
-            Avro.encodeToByteArray(Product.serializer(), milk),
-        )
+        val roundTripped = json.decodeFromString<Product>(json.encodeToString(product))
 
-        assertThat(roundTripped).isEqualTo(milk)
+        assertThat(roundTripped).isEqualTo(product)
     }
 
     @Test
-    fun `It should round-trip a product whose name needs more than ASCII`() {
+    fun `It should round-trip a product through Avro`() {
         // Given
-        val product = milk.copy(productId = "p2", name = "Crème fraîche 30%")
-
         // When
         val roundTripped = Avro.decodeFromByteArray(
             Product.serializer(),
@@ -36,5 +35,19 @@ class ProductTest {
         )
 
         assertThat(roundTripped).isEqualTo(product)
+    }
+
+    @Test
+    fun `It should round-trip a product whose name needs more than ASCII`() {
+        // Given
+        val accented = product.copy(productId = "p2", name = "Crème fraîche 30%")
+
+        // When
+        val roundTripped = Avro.decodeFromByteArray(
+            Product.serializer(),
+            Avro.encodeToByteArray(Product.serializer(), accented),
+        )
+
+        assertThat(roundTripped).isEqualTo(accented)
     }
 }
