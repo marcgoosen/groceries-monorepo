@@ -4,11 +4,14 @@ import io.github.marcgoosen.groceries.recommender.kafkastreams.AvroSerdes
 import io.github.marcgoosen.groceries.recommender.kafkastreams.TopicCreator
 import io.github.marcgoosen.groceries.recommender.kafkastreams.TopicNameBuilder
 import io.github.marcgoosen.groceries.recommender.kafkastreams.TopologyBuilder
+import io.github.marcgoosen.groceries.shared.domain.Order
+import io.github.marcgoosen.groceries.shared.domain.Product
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.serialization.json.Json
 import org.apache.kafka.clients.admin.Admin
+import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.StreamsBuilder
 
@@ -54,8 +57,16 @@ object Dependencies {
 
     val simulator by lazy {
         Simulator(
-            config.kafka,
-            avroSerdes,
+            KafkaProducer(
+                config.kafka.toProperties(),
+                avroSerdes.string.serializer(),
+                avroSerdes.create<Product>().serializer(),
+            ),
+            KafkaProducer(
+                config.kafka.toProperties(),
+                avroSerdes.string.serializer(),
+                avroSerdes.create<Order>().serializer(),
+            ),
             topicNameBuilder,
         )
     }
