@@ -38,11 +38,7 @@ abstract class BaseTopologyTest {
     protected val avroSerdes = AvroSerdes(config.kafka)
 
     protected fun setup(block: TopologyBuilder.() -> Unit = {}) {
-        val topology = TopologyBuilder(
-            StreamsBuilder(),
-            avroSerdes,
-            TopicNameBuilder(config.topics.name),
-        ).build(block)
+        val topology = TopologyBuilder(StreamsBuilder(), TopicNameBuilder(config.topics.name)).build(block)
 
         topologyTestDriver = TopologyTestDriver(topology, config.kafka.toProperties())
     }

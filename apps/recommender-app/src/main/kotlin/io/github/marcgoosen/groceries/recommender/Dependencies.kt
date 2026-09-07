@@ -38,12 +38,7 @@ object Dependencies {
     val builder by lazy { StreamsBuilder() }
 
     val topology by lazy {
-        TopologyBuilder(
-            builder,
-            avroSerdes,
-            topicNameBuilder,
-        )
-            .build()
+        TopologyBuilder(builder, topicNameBuilder).build()
     }
 
     val streams by lazy { KafkaStreams(topology, config.kafka.toProperties()) }

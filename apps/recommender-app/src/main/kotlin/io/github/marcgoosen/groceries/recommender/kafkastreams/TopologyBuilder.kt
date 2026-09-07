@@ -9,11 +9,7 @@ import org.apache.kafka.streams.StreamsBuilder
 import org.apache.kafka.streams.Topology
 import org.apache.kafka.streams.kstream.Materialized
 
-class TopologyBuilder(
-    val streamsBuilder: StreamsBuilder,
-    private val avroSerdes: AvroSerdes,
-    private val topicNameBuilder: TopicNameBuilder,
-) {
+class TopologyBuilder(val streamsBuilder: StreamsBuilder, private val topicNameBuilder: TopicNameBuilder) {
     val Topic.topicName get() = topicNameBuilder.build(this)
 
     val orderStream: OrderStream by lazy {
