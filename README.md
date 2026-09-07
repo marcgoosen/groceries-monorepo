@@ -69,7 +69,17 @@ Kafka UI is at [http://localhost:9080](http://localhost:9080).
 ./gradlew build
 ```
 
-This runs ktlint (via Spotless), the test suite, and the Kover coverage gate.
+This runs ktlint (via Spotless), the unit tests, and the Kover coverage gate. It needs no Docker.
+
+The integration test is a separate task, because it starts a real broker and Schema Registry:
+
+```bash
+./gradlew integrationTest
+```
+
+It runs the actual topology on a real Kafka with a real Schema Registry via Testcontainers, produces orders and
+asserts recommendations come back. `TopologyTestDriver` uses a `mock://` registry, so it never exercises schema
+registration, repartition topics or the real serde path — which is exactly where the interesting failures live.
 
 ### 3. Run the application
 
@@ -145,7 +155,6 @@ partition count.
 ## Not included yet
 
 - Docker image and Kubernetes manifests
-- Testcontainers integration test against a real broker and Schema Registry
 - The simulator extracted into its own app
 - A separate Kafka initializer that owns shared topics and schemas, failing early on incompatible changes
 - `KafkaStreams` state listener and uncaught-exception handler wired to the health endpoints

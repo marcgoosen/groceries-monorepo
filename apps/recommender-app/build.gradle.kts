@@ -3,6 +3,15 @@ plugins {
     alias(libs.plugins.kotlinx.serialization)
 }
 
+// Kept out of `check` so `./gradlew build` stays fast and needs no Docker; CI runs it as its own step.
+val integrationTest = sourceSets.create("integrationTest") {
+    compileClasspath += sourceSets.main.get().output + sourceSets.test.get().output
+    runtimeClasspath += output + compileClasspath
+}
+
+configurations["integrationTestImplementation"].extendsFrom(configurations.testImplementation.get())
+configurations["integrationTestRuntimeOnly"].extendsFrom(configurations.testRuntimeOnly.get())
+
 dependencies {
     implementation(projects.libs.shared)
     implementation(libs.kafka.streams)
@@ -28,10 +37,21 @@ dependencies {
     // Test dependencies
     testImplementation(libs.kafka.streams.test.utils)
     testImplementation(libs.ktor.server.test.host)
+
+    "integrationTestImplementation"(libs.bundles.test.containers)
 }
 
 application {
     mainClass.set("io.github.marcgoosen.groceries.recommender.AppKt")
+}
+
+tasks.register<Test>("integrationTest") {
+    description = "Runs the pipeline against a real Kafka broker and Schema Registry."
+    group = "verification"
+    testClassesDirs = integrationTest.output.classesDirs
+    classpath = integrationTest.runtimeClasspath
+    useJUnitPlatform()
+    shouldRunAfter(tasks.test)
 }
 
 tasks.named<JavaExec>("run") {
