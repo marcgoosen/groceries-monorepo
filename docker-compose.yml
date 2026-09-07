@@ -1,7 +1,7 @@
 ---
 services:
   broker:
-    image: "apache/kafka-native:4.0.0"
+    image: "apache/kafka-native:4.3.1"
     hostname: "broker"
     container_name: "broker"
     ports:
@@ -26,7 +26,7 @@ services:
       CLUSTER_ID: "local-cluster"
 
   schema-registry:
-    image: "confluentinc/cp-schema-registry:8.0.3"
+    image: "confluentinc/cp-schema-registry:8.3.1"
     hostname: "schema-registry"
     container_name: "schema-registry"
     depends_on:
@@ -40,7 +40,7 @@ services:
 
   kafka-ui:
     container_name: "kafka-ui"
-    image: "provectuslabs/kafka-ui:latest"
+    image: "kafbat/kafka-ui:v1.5.0"
     ports:
       - "9080:8080"
     depends_on:
