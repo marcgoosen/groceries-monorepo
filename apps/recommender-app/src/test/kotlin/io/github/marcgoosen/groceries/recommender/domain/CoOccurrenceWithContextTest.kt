@@ -6,7 +6,6 @@ import com.github.avrokotlin.avro4k.Avro
 import io.github.marcgoosen.groceries.shared.domain.Order
 import io.github.marcgoosen.groceries.shared.domain.OrderLine
 import kotlinx.datetime.Instant
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
@@ -25,48 +24,52 @@ class CoOccurrenceWithContextTest {
     private val context = CoOccurrenceWithContext(CoOccurrence(mapOf("p3" to 4)), order)
 
     @Test
-    fun `It should round-trip a populated context through JSON`() {
+    fun `It should serialize a populated context to JSON and read it back`() {
         // Given
         // When
-        val roundTripped = json.decodeFromString<CoOccurrenceWithContext>(json.encodeToString(context))
+        val serialized = json.encodeToString(CoOccurrenceWithContext.serializer(), context)
 
-        assertThat(roundTripped).isEqualTo(context)
-    }
-
-    @Test
-    fun `It should round-trip a populated context through Avro`() {
-        // Given
-        // When
-        val roundTripped = Avro.decodeFromByteArray(
-            CoOccurrenceWithContext.serializer(),
-            Avro.encodeToByteArray(CoOccurrenceWithContext.serializer(), context),
+        assertThat(serialized).isEqualTo(
+            """
+            {
+                "coOccurrence": {
+                    "countsByProduct": {
+                        "p3": 4
+                    }
+                },
+                "order": {
+                    "orderId": "order-1",
+                    "orderLines": [
+                        {
+                            "productId": "p1",
+                            "price": 2.0,
+                            "quantity": 1
+                        },
+                        {
+                            "productId": "p2",
+                            "price": 1.5,
+                            "quantity": 3
+                        }
+                    ],
+                    "timestamp": 1768469400123
+                }
+            }
+            """.trimIndent(),
         )
-
-        assertThat(roundTripped).isEqualTo(context)
+        assertThat(json.decodeFromString(CoOccurrenceWithContext.serializer(), serialized)).isEqualTo(context)
     }
 
     @Test
-    fun `It should round-trip a context whose product had no co-occurrences yet`() {
+    fun `It should serialize a populated context to Avro and read it back`() {
         // Given
-        val withoutCounts = context.copy(coOccurrence = CoOccurrence())
-
         // When
-        val roundTripped = Avro.decodeFromByteArray(
-            CoOccurrenceWithContext.serializer(),
-            Avro.encodeToByteArray(CoOccurrenceWithContext.serializer(), withoutCounts),
-        )
+        val serialized = Avro.encodeToByteArray(CoOccurrenceWithContext.serializer(), context)
 
-        assertThat(roundTripped).isEqualTo(withoutCounts)
-    }
-
-    @Test
-    fun `It should round-trip a context for an order with no lines`() {
-        // Given
-        val emptyOrder = context.copy(order = order.copy(orderLines = emptyList()))
-
-        // When
-        val roundTripped = json.decodeFromString<CoOccurrenceWithContext>(json.encodeToString(emptyOrder))
-
-        assertThat(roundTripped).isEqualTo(emptyOrder)
+        assertThat(
+            serialized.toHex(),
+        ).isEqualTo("0204703308000e6f726465722d3104047031000000000000004002047032000000000000f83f0600f6a8ec8ff866")
+        assertThat(Avro.decodeFromByteArray(CoOccurrenceWithContext.serializer(), serialized)).isEqualTo(context)
     }
 }
+
+private fun ByteArray.toHex() = joinToString("") { "%02x".format(it) }

@@ -33,12 +33,11 @@ private const val MAX_QUANTITY = 3
 private val ORDER_INTERVAL = 50.milliseconds
 
 class Simulator(
-    private val producers: Producers,
+    private val productProducer: Producer<ProductId, Product>,
+    private val orderProducer: Producer<OrderId, Order>,
     private val topicNameBuilder: TopicNameBuilder,
     private val orderInterval: Duration = ORDER_INTERVAL,
 ) : AutoCloseable {
-    data class Producers(val product: Producer<ProductId, Product>, val order: Producer<OrderId, Order>)
-
     private val faker = Faker()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val Topic.topicName get() = topicNameBuilder.build(this)
@@ -66,22 +65,22 @@ class Simulator(
 
     override fun close() {
         runBlocking { scope.coroutineContext.job.cancelAndJoin() }
-        producers.product.close()
-        producers.order.close()
+        productProducer.close()
+        orderProducer.close()
     }
 
     private fun produceProducts() {
         val productTopic = Topic.PRODUCT.topicName
         products.forEach { product ->
-            producers.product.send(ProducerRecord(productTopic, product.productId, product))
+            productProducer.send(ProducerRecord(productTopic, product.productId, product))
         }
-        producers.product.flush()
+        productProducer.flush()
         logger.info { "Produced ${products.size} products to $productTopic" }
     }
 
     private fun produceOrder() {
         val order = generateRandomOrder()
-        producers.order.send(ProducerRecord(Topic.ORDER.topicName, order.orderId, order)) { metadata, exception ->
+        orderProducer.send(ProducerRecord(Topic.ORDER.topicName, order.orderId, order)) { metadata, exception ->
             when (exception) {
                 null -> logger.debug { "Produced order ${order.orderId} to ${metadata.topic()}" }
                 else -> logger.error(exception) { "Error producing order ${order.orderId}" }

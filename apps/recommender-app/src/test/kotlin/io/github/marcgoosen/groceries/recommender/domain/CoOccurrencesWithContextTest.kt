@@ -6,13 +6,11 @@ import com.github.avrokotlin.avro4k.Avro
 import io.github.marcgoosen.groceries.shared.domain.Order
 import io.github.marcgoosen.groceries.shared.domain.OrderLine
 import kotlinx.datetime.Instant
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
 /**
- * The fan-in aggregate: every ordered product's co-occurrences gathered back under one order. Both fields are
- * defaulted, so the aggregate starts empty on the very first update.
+ * The fan-in aggregate. Both fields are defaulted, so it starts empty on the first update.
  */
 class CoOccurrencesWithContextTest {
     private val json = Json { prettyPrint = true }
@@ -28,64 +26,88 @@ class CoOccurrencesWithContextTest {
         order = order,
     )
 
-    @Test
-    fun `It should round-trip a populated aggregate through JSON`() {
-        // Given
-        // When
-        val roundTripped = json.decodeFromString<CoOccurrencesWithContext>(json.encodeToString(context))
-
-        assertThat(roundTripped).isEqualTo(context)
-    }
+    private val empty = CoOccurrencesWithContext()
 
     @Test
-    fun `It should round-trip a populated aggregate through Avro`() {
+    fun `It should serialize a populated aggregate to JSON and read it back`() {
         // Given
         // When
-        val roundTripped = Avro.decodeFromByteArray(
-            CoOccurrencesWithContext.serializer(),
-            Avro.encodeToByteArray(CoOccurrencesWithContext.serializer(), context),
+        val serialized = json.encodeToString(CoOccurrencesWithContext.serializer(), context)
+
+        assertThat(serialized).isEqualTo(
+            """
+            {
+                "coOccurrences": [
+                    {
+                        "countsByProduct": {
+                            "p3": 1
+                        }
+                    },
+                    {
+                        "countsByProduct": {
+                            "p4": 2
+                        }
+                    }
+                ],
+                "order": {
+                    "orderId": "order-1",
+                    "orderLines": [
+                        {
+                            "productId": "p1",
+                            "price": 2.0,
+                            "quantity": 1
+                        },
+                        {
+                            "productId": "p2",
+                            "price": 1.5,
+                            "quantity": 3
+                        }
+                    ],
+                    "timestamp": 1768469400123
+                }
+            }
+            """.trimIndent(),
         )
-
-        assertThat(roundTripped).isEqualTo(context)
+        assertThat(json.decodeFromString(CoOccurrencesWithContext.serializer(), serialized)).isEqualTo(context)
     }
 
     @Test
-    fun `It should omit its defaults from the JSON payload and read them back`() {
+    fun `It should serialize a populated aggregate to Avro and read it back`() {
         // Given
-        val defaults = CoOccurrencesWithContext()
-
         // When
-        val serialized = json.encodeToString(defaults)
+        val serialized = Avro.encodeToByteArray(CoOccurrencesWithContext.serializer(), context)
 
-        assertThat(serialized).isEqualTo("{}")
-        assertThat(json.decodeFromString<CoOccurrencesWithContext>(serialized)).isEqualTo(defaults)
-    }
-
-    @Test
-    fun `It should round-trip a default-valued instance through Avro`() {
-        // Given
-        val defaults = CoOccurrencesWithContext()
-
-        // When
-        val roundTripped = Avro.decodeFromByteArray(
-            CoOccurrencesWithContext.serializer(),
-            Avro.encodeToByteArray(CoOccurrencesWithContext.serializer(), defaults),
+        assertThat(
+            serialized.toHex(),
+        ).isEqualTo(
+            "0402047033020002047034040000020e6f726465722d3104047031000000000000004002047032000000000000f83f0600f6a8ec8ff866",
         )
-
-        assertThat(roundTripped).isEqualTo(defaults)
+        assertThat(Avro.decodeFromByteArray(CoOccurrencesWithContext.serializer(), serialized)).isEqualTo(context)
     }
 
     @Test
-    fun `It should round-trip an aggregate that has an order but no co-occurrences yet`() {
+    fun `It should serialize its defaults to JSON and read it back`() {
         // Given
-        val started = CoOccurrencesWithContext(order = order)
-
         // When
-        val roundTripped = Avro.decodeFromByteArray(
-            CoOccurrencesWithContext.serializer(),
-            Avro.encodeToByteArray(CoOccurrencesWithContext.serializer(), started),
-        )
+        val serialized = json.encodeToString(CoOccurrencesWithContext.serializer(), empty)
 
-        assertThat(roundTripped).isEqualTo(started)
+        assertThat(serialized).isEqualTo(
+            """
+            {}
+            """.trimIndent(),
+        )
+        assertThat(json.decodeFromString(CoOccurrencesWithContext.serializer(), serialized)).isEqualTo(empty)
+    }
+
+    @Test
+    fun `It should serialize its defaults to Avro and read it back`() {
+        // Given
+        // When
+        val serialized = Avro.encodeToByteArray(CoOccurrencesWithContext.serializer(), empty)
+
+        assertThat(serialized.toHex()).isEqualTo("0000")
+        assertThat(Avro.decodeFromByteArray(CoOccurrencesWithContext.serializer(), serialized)).isEqualTo(empty)
     }
 }
+
+private fun ByteArray.toHex() = joinToString("") { "%02x".format(it) }

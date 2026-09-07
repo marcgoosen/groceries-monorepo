@@ -4,12 +4,11 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.avrokotlin.avro4k.Avro
 import io.github.marcgoosen.groceries.shared.domain.Product
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
 /**
- * A recommended product and how likely it is; the element of what the pipeline finally emits.
+ * A recommended product and how likely it is.
  */
 class ProductWithProbabilityTest {
     private val json = Json { prettyPrint = true }
@@ -17,23 +16,39 @@ class ProductWithProbabilityTest {
     private val productWithProbability = ProductWithProbability(Product("p1", "Milk", 2.0), 0.5)
 
     @Test
-    fun `It should round-trip a product with its probability through JSON`() {
+    fun `It should serialize a product with its probability to JSON and read it back`() {
         // Given
         // When
-        val roundTripped = json.decodeFromString<ProductWithProbability>(json.encodeToString(productWithProbability))
+        val serialized = json.encodeToString(ProductWithProbability.serializer(), productWithProbability)
 
-        assertThat(roundTripped).isEqualTo(productWithProbability)
+        assertThat(serialized).isEqualTo(
+            """
+            {
+                "product": {
+                    "productId": "p1",
+                    "name": "Milk",
+                    "price": 2.0
+                },
+                "probability": 0.5
+            }
+            """.trimIndent(),
+        )
+        assertThat(
+            json.decodeFromString(ProductWithProbability.serializer(), serialized),
+        ).isEqualTo(productWithProbability)
     }
 
     @Test
-    fun `It should round-trip a product with its probability through Avro`() {
+    fun `It should serialize a product with its probability to Avro and read it back`() {
         // Given
         // When
-        val roundTripped = Avro.decodeFromByteArray(
-            ProductWithProbability.serializer(),
-            Avro.encodeToByteArray(ProductWithProbability.serializer(), productWithProbability),
-        )
+        val serialized = Avro.encodeToByteArray(ProductWithProbability.serializer(), productWithProbability)
 
-        assertThat(roundTripped).isEqualTo(productWithProbability)
+        assertThat(serialized.toHex()).isEqualTo("047031084d696c6b0000000000000040000000000000e03f")
+        assertThat(
+            Avro.decodeFromByteArray(ProductWithProbability.serializer(), serialized),
+        ).isEqualTo(productWithProbability)
     }
 }
+
+private fun ByteArray.toHex() = joinToString("") { "%02x".format(it) }

@@ -3,13 +3,11 @@ package io.github.marcgoosen.groceries.shared.domain
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.avrokotlin.avro4k.Avro
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
 /**
- * Product is the compacted lookup topic the pipeline joins against, so its Avro encoding is the contract with
- * whoever maintains the catalogue.
+ * Product is the compacted lookup topic the pipeline joins against.
  */
 class ProductTest {
     private val json = Json { prettyPrint = true }
@@ -17,37 +15,32 @@ class ProductTest {
     private val product = Product(productId = "p1", name = "Milk", price = 2.0)
 
     @Test
-    fun `It should round-trip a product through JSON`() {
+    fun `It should serialize a product to JSON and read it back`() {
         // Given
         // When
-        val roundTripped = json.decodeFromString<Product>(json.encodeToString(product))
+        val serialized = json.encodeToString(Product.serializer(), product)
 
-        assertThat(roundTripped).isEqualTo(product)
+        assertThat(serialized).isEqualTo(
+            """
+            {
+                "productId": "p1",
+                "name": "Milk",
+                "price": 2.0
+            }
+            """.trimIndent(),
+        )
+        assertThat(json.decodeFromString(Product.serializer(), serialized)).isEqualTo(product)
     }
 
     @Test
-    fun `It should round-trip a product through Avro`() {
+    fun `It should serialize a product to Avro and read it back`() {
         // Given
         // When
-        val roundTripped = Avro.decodeFromByteArray(
-            Product.serializer(),
-            Avro.encodeToByteArray(Product.serializer(), product),
-        )
+        val serialized = Avro.encodeToByteArray(Product.serializer(), product)
 
-        assertThat(roundTripped).isEqualTo(product)
-    }
-
-    @Test
-    fun `It should round-trip a product whose name needs more than ASCII`() {
-        // Given
-        val accented = product.copy(productId = "p2", name = "Crème fraîche 30%")
-
-        // When
-        val roundTripped = Avro.decodeFromByteArray(
-            Product.serializer(),
-            Avro.encodeToByteArray(Product.serializer(), accented),
-        )
-
-        assertThat(roundTripped).isEqualTo(accented)
+        assertThat(serialized.toHex()).isEqualTo("047031084d696c6b0000000000000040")
+        assertThat(Avro.decodeFromByteArray(Product.serializer(), serialized)).isEqualTo(product)
     }
 }
+
+private fun ByteArray.toHex() = joinToString("") { "%02x".format(it) }

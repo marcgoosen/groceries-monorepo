@@ -3,62 +3,71 @@ package io.github.marcgoosen.groceries.recommender.domain
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.avrokotlin.avro4k.Avro
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
 /**
- * Counts of what was bought alongside a product. Written to a changelog, so both encodings must survive.
+ * Counts of what was bought alongside a product, kept in a changelog-backed store.
  */
 class CoOccurrenceTest {
     private val json = Json { prettyPrint = true }
 
     private val coOccurrence = CoOccurrence(mapOf("p1" to 2, "p2" to 1))
 
-    @Test
-    fun `It should round-trip a populated co-occurrence through JSON`() {
-        // Given
-        // When
-        val roundTripped = json.decodeFromString<CoOccurrence>(json.encodeToString(coOccurrence))
-
-        assertThat(roundTripped).isEqualTo(coOccurrence)
-    }
+    private val empty = CoOccurrence()
 
     @Test
-    fun `It should round-trip a populated co-occurrence through Avro`() {
+    fun `It should serialize a populated co-occurrence to JSON and read it back`() {
         // Given
         // When
-        val roundTripped = Avro.decodeFromByteArray(
-            CoOccurrence.serializer(),
-            Avro.encodeToByteArray(CoOccurrence.serializer(), coOccurrence),
+        val serialized = json.encodeToString(CoOccurrence.serializer(), coOccurrence)
+
+        assertThat(serialized).isEqualTo(
+            """
+            {
+                "countsByProduct": {
+                    "p1": 2,
+                    "p2": 1
+                }
+            }
+            """.trimIndent(),
         )
-
-        assertThat(roundTripped).isEqualTo(coOccurrence)
+        assertThat(json.decodeFromString(CoOccurrence.serializer(), serialized)).isEqualTo(coOccurrence)
     }
 
     @Test
-    fun `It should omit its defaults from the JSON payload and read them back`() {
+    fun `It should serialize a populated co-occurrence to Avro and read it back`() {
         // Given
-        val defaults = CoOccurrence()
-
         // When
-        val serialized = json.encodeToString(defaults)
+        val serialized = Avro.encodeToByteArray(CoOccurrence.serializer(), coOccurrence)
 
-        assertThat(serialized).isEqualTo("{}")
-        assertThat(json.decodeFromString<CoOccurrence>(serialized)).isEqualTo(defaults)
+        assertThat(serialized.toHex()).isEqualTo("04047031040470320200")
+        assertThat(Avro.decodeFromByteArray(CoOccurrence.serializer(), serialized)).isEqualTo(coOccurrence)
     }
 
     @Test
-    fun `It should round-trip a default-valued instance through Avro`() {
+    fun `It should serialize its defaults to JSON and read it back`() {
         // Given
-        val defaults = CoOccurrence()
-
         // When
-        val roundTripped = Avro.decodeFromByteArray(
-            CoOccurrence.serializer(),
-            Avro.encodeToByteArray(CoOccurrence.serializer(), defaults),
+        val serialized = json.encodeToString(CoOccurrence.serializer(), empty)
+
+        assertThat(serialized).isEqualTo(
+            """
+            {}
+            """.trimIndent(),
         )
+        assertThat(json.decodeFromString(CoOccurrence.serializer(), serialized)).isEqualTo(empty)
+    }
 
-        assertThat(roundTripped).isEqualTo(defaults)
+    @Test
+    fun `It should serialize its defaults to Avro and read it back`() {
+        // Given
+        // When
+        val serialized = Avro.encodeToByteArray(CoOccurrence.serializer(), empty)
+
+        assertThat(serialized.toHex()).isEqualTo("00")
+        assertThat(Avro.decodeFromByteArray(CoOccurrence.serializer(), serialized)).isEqualTo(empty)
     }
 }
+
+private fun ByteArray.toHex() = joinToString("") { "%02x".format(it) }

@@ -4,13 +4,11 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.avrokotlin.avro4k.Avro
 import io.github.marcgoosen.groceries.shared.domain.Product
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
 /**
- * A looked-up product plus the order it is destined for. The product is null when the join found no catalogue entry,
- * so that path has to survive both encodings.
+ * A looked-up product plus the order it is destined for. The product is null when the join found no catalogue entry.
  */
 class ProductWithProbabilityContextTest {
     private val json = Json { prettyPrint = true }
@@ -21,49 +19,72 @@ class ProductWithProbabilityContextTest {
         expectedSize = 3,
     )
 
-    @Test
-    fun `It should round-trip a context with a product through JSON`() {
-        // Given
-        // When
-        val roundTripped = json.decodeFromString<ProductWithProbabilityContext>(json.encodeToString(context))
-
-        assertThat(roundTripped).isEqualTo(context)
-    }
+    private val unresolved = ProductWithProbabilityContext(null, "order-1", 3)
 
     @Test
-    fun `It should round-trip a context with a product through Avro`() {
+    fun `It should serialize a context with a product to JSON and read it back`() {
         // Given
         // When
-        val roundTripped = Avro.decodeFromByteArray(
-            ProductWithProbabilityContext.serializer(),
-            Avro.encodeToByteArray(ProductWithProbabilityContext.serializer(), context),
+        val serialized = json.encodeToString(ProductWithProbabilityContext.serializer(), context)
+
+        assertThat(serialized).isEqualTo(
+            """
+            {
+                "productWithProbability": {
+                    "product": {
+                        "productId": "p1",
+                        "name": "Milk",
+                        "price": 2.0
+                    },
+                    "probability": 0.5
+                },
+                "orderId": "order-1",
+                "expectedSize": 3
+            }
+            """.trimIndent(),
         )
-
-        assertThat(roundTripped).isEqualTo(context)
+        assertThat(json.decodeFromString(ProductWithProbabilityContext.serializer(), serialized)).isEqualTo(context)
     }
 
     @Test
-    fun `It should round-trip a context whose product was not found through JSON`() {
+    fun `It should serialize a context with a product to Avro and read it back`() {
         // Given
-        val unresolved = context.copy(productWithProbability = null)
-
         // When
-        val roundTripped = json.decodeFromString<ProductWithProbabilityContext>(json.encodeToString(unresolved))
+        val serialized = Avro.encodeToByteArray(ProductWithProbabilityContext.serializer(), context)
 
-        assertThat(roundTripped).isEqualTo(unresolved)
+        assertThat(serialized.toHex()).isEqualTo("02047031084d696c6b0000000000000040000000000000e03f0e6f726465722d3106")
+        assertThat(Avro.decodeFromByteArray(ProductWithProbabilityContext.serializer(), serialized)).isEqualTo(context)
     }
 
     @Test
-    fun `It should round-trip a context whose product was not found through Avro`() {
+    fun `It should serialize a context whose product was not found to JSON and read it back`() {
         // Given
-        val unresolved = context.copy(productWithProbability = null)
-
         // When
-        val roundTripped = Avro.decodeFromByteArray(
-            ProductWithProbabilityContext.serializer(),
-            Avro.encodeToByteArray(ProductWithProbabilityContext.serializer(), unresolved),
+        val serialized = json.encodeToString(ProductWithProbabilityContext.serializer(), unresolved)
+
+        assertThat(serialized).isEqualTo(
+            """
+            {
+                "productWithProbability": null,
+                "orderId": "order-1",
+                "expectedSize": 3
+            }
+            """.trimIndent(),
         )
+        assertThat(json.decodeFromString(ProductWithProbabilityContext.serializer(), serialized)).isEqualTo(unresolved)
+    }
 
-        assertThat(roundTripped).isEqualTo(unresolved)
+    @Test
+    fun `It should serialize a context whose product was not found to Avro and read it back`() {
+        // Given
+        // When
+        val serialized = Avro.encodeToByteArray(ProductWithProbabilityContext.serializer(), unresolved)
+
+        assertThat(serialized.toHex()).isEqualTo("000e6f726465722d3106")
+        assertThat(
+            Avro.decodeFromByteArray(ProductWithProbabilityContext.serializer(), serialized),
+        ).isEqualTo(unresolved)
     }
 }
+
+private fun ByteArray.toHex() = joinToString("") { "%02x".format(it) }

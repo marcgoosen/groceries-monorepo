@@ -39,7 +39,8 @@ class SimulatorTest {
         MockProducer<OrderId, Order>(true, RoundRobinPartitioner(), StringSerializer(), DiscardingSerializer())
 
     private val simulator = Simulator(
-        Simulator.Producers(productProducer, orderProducer),
+        productProducer,
+        orderProducer,
         TopicNameBuilder(topics),
         orderInterval = 10.milliseconds,
     )

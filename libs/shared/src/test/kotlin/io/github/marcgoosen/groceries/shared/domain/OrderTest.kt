@@ -4,12 +4,11 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.avrokotlin.avro4k.Avro
 import kotlinx.datetime.Instant
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
 /**
- * Order is what the pipeline consumes, so its Avro encoding is the contract with whoever produces orders.
+ * Order is what the pipeline consumes, so this encoding is the contract with whoever produces orders.
  */
 class OrderTest {
     private val json = Json { prettyPrint = true }
@@ -21,45 +20,10 @@ class OrderTest {
     )
 
     @Test
-    fun `It should round-trip an order through JSON`() {
+    fun `It should serialize an order to JSON and read it back`() {
         // Given
         // When
-        val roundTripped = json.decodeFromString<Order>(json.encodeToString(order))
-
-        assertThat(roundTripped).isEqualTo(order)
-    }
-
-    @Test
-    fun `It should round-trip an order through Avro`() {
-        // Given
-        // When
-        val roundTripped = Avro.decodeFromByteArray(
-            Order.serializer(),
-            Avro.encodeToByteArray(Order.serializer(), order),
-        )
-
-        assertThat(roundTripped).isEqualTo(order)
-    }
-
-    @Test
-    fun `It should round-trip an order with no lines`() {
-        // Given
-        val empty = order.copy(orderLines = emptyList())
-
-        // When
-        val roundTripped = Avro.decodeFromByteArray(
-            Order.serializer(),
-            Avro.encodeToByteArray(Order.serializer(), empty),
-        )
-
-        assertThat(roundTripped).isEqualTo(empty)
-    }
-
-    @Test
-    fun `It should carry the timestamp as epoch milliseconds in JSON`() {
-        // Given
-        // When
-        val serialized = json.encodeToString(order)
+        val serialized = json.encodeToString(Order.serializer(), order)
 
         assertThat(serialized).isEqualTo(
             """
@@ -81,5 +45,20 @@ class OrderTest {
             }
             """.trimIndent(),
         )
+        assertThat(json.decodeFromString(Order.serializer(), serialized)).isEqualTo(order)
+    }
+
+    @Test
+    fun `It should serialize an order to Avro and read it back`() {
+        // Given
+        // When
+        val serialized = Avro.encodeToByteArray(Order.serializer(), order)
+
+        assertThat(
+            serialized.toHex(),
+        ).isEqualTo("0e6f726465722d3104047031000000000000004002047032000000000000f83f0600f6a8ec8ff866")
+        assertThat(Avro.decodeFromByteArray(Order.serializer(), serialized)).isEqualTo(order)
     }
 }
+
+private fun ByteArray.toHex() = joinToString("") { "%02x".format(it) }

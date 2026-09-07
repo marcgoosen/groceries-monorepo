@@ -57,17 +57,15 @@ object Dependencies {
 
     val simulator by lazy {
         Simulator(
-            Simulator.Producers(
-                KafkaProducer(
-                    config.kafka.toProperties(),
-                    avroSerdes.string.serializer(),
-                    avroSerdes.create<Product>().serializer(),
-                ),
-                KafkaProducer(
-                    config.kafka.toProperties(),
-                    avroSerdes.string.serializer(),
-                    avroSerdes.create<Order>().serializer(),
-                ),
+            KafkaProducer(
+                config.kafka.toProperties(),
+                avroSerdes.string.serializer(),
+                avroSerdes.create<Product>().serializer(),
+            ),
+            KafkaProducer(
+                config.kafka.toProperties(),
+                avroSerdes.string.serializer(),
+                avroSerdes.create<Order>().serializer(),
             ),
             topicNameBuilder,
         )

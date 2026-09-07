@@ -3,62 +3,71 @@ package io.github.marcgoosen.groceries.recommender.domain
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.avrokotlin.avro4k.Avro
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 
 /**
- * Co-occurrence counts expressed as probabilities, carried between pipeline stages.
+ * Co-occurrence counts turned into probabilities.
  */
 class CoDistributionTest {
     private val json = Json { prettyPrint = true }
 
     private val coDistribution = CoDistribution(mapOf("p1" to 0.4, "p2" to 0.6))
 
-    @Test
-    fun `It should round-trip a populated distribution through JSON`() {
-        // Given
-        // When
-        val roundTripped = json.decodeFromString<CoDistribution>(json.encodeToString(coDistribution))
-
-        assertThat(roundTripped).isEqualTo(coDistribution)
-    }
+    private val empty = CoDistribution()
 
     @Test
-    fun `It should round-trip a populated distribution through Avro`() {
+    fun `It should serialize a populated distribution to JSON and read it back`() {
         // Given
         // When
-        val roundTripped = Avro.decodeFromByteArray(
-            CoDistribution.serializer(),
-            Avro.encodeToByteArray(CoDistribution.serializer(), coDistribution),
+        val serialized = json.encodeToString(CoDistribution.serializer(), coDistribution)
+
+        assertThat(serialized).isEqualTo(
+            """
+            {
+                "probabilityByProductId": {
+                    "p1": 0.4,
+                    "p2": 0.6
+                }
+            }
+            """.trimIndent(),
         )
-
-        assertThat(roundTripped).isEqualTo(coDistribution)
+        assertThat(json.decodeFromString(CoDistribution.serializer(), serialized)).isEqualTo(coDistribution)
     }
 
     @Test
-    fun `It should omit its defaults from the JSON payload and read them back`() {
+    fun `It should serialize a populated distribution to Avro and read it back`() {
         // Given
-        val defaults = CoDistribution()
-
         // When
-        val serialized = json.encodeToString(defaults)
+        val serialized = Avro.encodeToByteArray(CoDistribution.serializer(), coDistribution)
 
-        assertThat(serialized).isEqualTo("{}")
-        assertThat(json.decodeFromString<CoDistribution>(serialized)).isEqualTo(defaults)
+        assertThat(serialized.toHex()).isEqualTo("040470319a9999999999d93f047032333333333333e33f00")
+        assertThat(Avro.decodeFromByteArray(CoDistribution.serializer(), serialized)).isEqualTo(coDistribution)
     }
 
     @Test
-    fun `It should round-trip a default-valued instance through Avro`() {
+    fun `It should serialize its defaults to JSON and read it back`() {
         // Given
-        val defaults = CoDistribution()
-
         // When
-        val roundTripped = Avro.decodeFromByteArray(
-            CoDistribution.serializer(),
-            Avro.encodeToByteArray(CoDistribution.serializer(), defaults),
+        val serialized = json.encodeToString(CoDistribution.serializer(), empty)
+
+        assertThat(serialized).isEqualTo(
+            """
+            {}
+            """.trimIndent(),
         )
+        assertThat(json.decodeFromString(CoDistribution.serializer(), serialized)).isEqualTo(empty)
+    }
 
-        assertThat(roundTripped).isEqualTo(defaults)
+    @Test
+    fun `It should serialize its defaults to Avro and read it back`() {
+        // Given
+        // When
+        val serialized = Avro.encodeToByteArray(CoDistribution.serializer(), empty)
+
+        assertThat(serialized.toHex()).isEqualTo("00")
+        assertThat(Avro.decodeFromByteArray(CoDistribution.serializer(), serialized)).isEqualTo(empty)
     }
 }
+
+private fun ByteArray.toHex() = joinToString("") { "%02x".format(it) }
