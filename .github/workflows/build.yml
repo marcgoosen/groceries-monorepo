@@ -13,6 +13,7 @@ concurrency:
 
 permissions:
   contents: "read"
+  pull-requests: "write"
 
 jobs:
   build:
@@ -33,7 +34,19 @@ jobs:
           cache-provider: "basic"
 
       - name: "Build, check and test"
-        run: "./gradlew build"
+        run: "./gradlew build koverXmlReport"
+
+      - name: "Report coverage"
+        if: "always()"
+        env:
+          GH_TOKEN: "${{ github.token }}"
+        run: |
+          python3 .github/scripts/coverage_summary.py > coverage.md
+          cat coverage.md >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "${{ github.event.pull_request.number }}" ]; then
+            gh pr comment "${{ github.event.pull_request.number }}" \
+              --body-file coverage.md --edit-last --create-if-none
+          fi
 
       - name: "Upload test results"
         if: "always()"
