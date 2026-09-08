@@ -90,6 +90,31 @@ registration, repartition topics or the real serde path — which is exactly whe
 The app creates its topics and starts producing orders by default; the `run` task only switches logging to the
 human-readable local format. Watch `groceries.related-products.v1` fill up in Kafka UI.
 
+## The image
+
+Built with [Jib](https://github.com/GoogleContainerTools/jib) through the Ktor Gradle plugin, so there is no
+Dockerfile and no build context — Jib layers the compiled classes onto `eclipse-temurin:21-jre` directly. The
+image runs as uid 1000 and declares port 8080.
+
+```bash
+./gradlew publishImageToLocalRegistry      # -> recommender-app:latest, in your local daemon
+docker compose --profile app up -d         # the stack, now including the app
+./gradlew e2eTest                          # assert against the running container
+docker compose --profile app down -v
+```
+
+`docker compose up -d` on its own still starts only the infrastructure, so it does not clash with
+`./gradlew run`. The app service sits behind the `app` profile.
+
+Merges to `main` publish to `ghcr.io/marcgoosen/recommender-app`, tagged `latest` and `sha-<short>`:
+
+```bash
+docker pull ghcr.io/marcgoosen/recommender-app:latest
+```
+
+Note that Jib's Gradle tasks are not compatible with the configuration cache, so an image build logs that the
+cache was disabled for that invocation. That is expected, not a regression.
+
 ## Topics
 
 | Topic | Contents |
@@ -160,7 +185,7 @@ gauge, so a client stuck outside RUNNING can be alerted on.
 
 ## Not included yet
 
-- Docker image and Kubernetes manifests
+- Kubernetes manifests
 - The simulator extracted into its own app
 - A separate Kafka initializer that owns shared topics and schemas, failing early on incompatible changes
 

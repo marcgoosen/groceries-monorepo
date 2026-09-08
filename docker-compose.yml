@@ -54,3 +54,20 @@ services:
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: "first"
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: "http://connect:8083"
       DYNAMIC_CONFIG_ENABLED: "true"
+
+  # Not started by a plain `docker compose up` — that stays infrastructure only, so it does not clash with
+  # `./gradlew run`. Bring it up with `docker compose --profile app up -d`.
+  recommender:
+    profiles: ["app"]
+    container_name: "recommender"
+    image: "${RECOMMENDER_IMAGE:-recommender-app:latest}"
+    depends_on:
+      - "broker"
+      - "schema-registry"
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: "broker:29092"
+      KAFKA_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      MAIN_CREATE_TOPICS: "true"
+      MAIN_START_SIMULATOR: "true"

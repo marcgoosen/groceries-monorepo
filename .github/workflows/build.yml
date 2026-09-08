@@ -14,6 +14,7 @@ concurrency:
 permissions:
   contents: "read"
   pull-requests: "write"
+  packages: "write"
 
 jobs:
   build:
@@ -39,6 +40,40 @@ jobs:
       - name: "Integration test against a real Kafka and Schema Registry"
         run: "./gradlew integrationTest"
 
+      - name: "Build the image into the runner's Docker daemon"
+        run: "./gradlew publishImageToLocalRegistry"
+
+      - name: "Start the compose stack with that image"
+        run: "docker compose --profile app up -d"
+
+      - name: "End-to-end test against the packaged image"
+        run: "./gradlew e2eTest"
+
+      - name: "Show the app logs if the end-to-end test failed"
+        if: "failure()"
+        run: "docker compose --profile app logs recommender"
+
+      - name: "Stop the compose stack"
+        if: "always()"
+        run: "docker compose --profile app down -v"
+
+      - name: "Log in to GHCR"
+        if: "github.ref == 'refs/heads/main'"
+        uses: "docker/login-action@v3"
+        with:
+          registry: "ghcr.io"
+          username: "${{ github.actor }}"
+          password: "${{ github.token }}"
+
+      - name: "Publish the image to GHCR"
+        if: "github.ref == 'refs/heads/main'"
+        env:
+          GHCR_USERNAME: "${{ github.actor }}"
+          GHCR_TOKEN: "${{ github.token }}"
+        run: |
+          ./gradlew publishImage -PimageTag="sha-${GITHUB_SHA:0:7}"
+          ./gradlew publishImage -PimageTag="latest"
+
       - name: "Report coverage"
         if: "always()"
         env:
@@ -59,6 +94,7 @@ jobs:
           path: |
             **/build/reports/tests/test
             **/build/reports/tests/integrationTest
+            **/build/reports/tests/e2eTest
           if-no-files-found: "ignore"
 
       - name: "Upload coverage report"
