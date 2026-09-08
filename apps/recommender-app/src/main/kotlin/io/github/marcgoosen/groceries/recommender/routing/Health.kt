@@ -1,5 +1,6 @@
 package io.github.marcgoosen.groceries.recommender.routing
 
+import io.github.marcgoosen.groceries.recommender.kafkastreams.isDeadOrDying
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.response.respond
@@ -14,7 +15,7 @@ fun Application.configureHealth(streams: KafkaStreams) {
     routing {
         get("/health/liveness") {
             when {
-                streams.state().hasCompletedShutdown() -> call.respond(HttpStatusCode.ServiceUnavailable, down)
+                streams.state().isDeadOrDying -> call.respond(HttpStatusCode.ServiceUnavailable, down)
                 else -> call.respond(HttpStatusCode.OK, up)
             }
         }
