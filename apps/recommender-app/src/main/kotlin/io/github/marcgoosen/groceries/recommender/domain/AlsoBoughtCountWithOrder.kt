@@ -4,4 +4,4 @@ import io.github.marcgoosen.groceries.shared.domain.Order
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class CoOccurrenceWithContext(val coOccurrence: CoOccurrence, val order: Order)
+data class AlsoBoughtCountWithOrder(val alsoBought: AlsoBoughtCount, val order: Order)

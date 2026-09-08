@@ -11,16 +11,16 @@ import org.junit.jupiter.api.Test
 /**
  * A recommended product and how likely it is.
  */
-class ProductWithProbabilityTest {
+class RelatedProductTest {
     private val json = Json { prettyPrint = true }
 
-    private val productWithProbability = ProductWithProbability(Product("p1", "Milk", 2.0), 0.5)
+    private val relatedProduct = RelatedProduct(Product("p1", "Milk", 2.0), 0.5)
 
     @Test
     fun `It should serialize a product with its probability to JSON and read it back`() {
         // Given
         // When
-        val serialized = json.encodeToString(productWithProbability)
+        val serialized = json.encodeToString(relatedProduct)
 
         assertThat(serialized).isEqualTo(
             """
@@ -35,20 +35,20 @@ class ProductWithProbabilityTest {
             """.trimIndent(),
         )
         assertThat(
-            json.decodeFromString<ProductWithProbability>(serialized),
-        ).isEqualTo(productWithProbability)
+            json.decodeFromString<RelatedProduct>(serialized),
+        ).isEqualTo(relatedProduct)
     }
 
     @Test
     fun `It should serialize a product with its probability to Avro and read it back`() {
         // Given
         // When
-        val serialized = Avro.encodeToByteArray(ProductWithProbability.serializer(), productWithProbability)
+        val serialized = Avro.encodeToByteArray(RelatedProduct.serializer(), relatedProduct)
 
         assertThat(serialized.toHex()).isEqualTo("047031084d696c6b0000000000000040000000000000e03f")
         assertThat(
-            Avro.decodeFromByteArray(ProductWithProbability.serializer(), serialized),
-        ).isEqualTo(productWithProbability)
+            Avro.decodeFromByteArray(RelatedProduct.serializer(), serialized),
+        ).isEqualTo(relatedProduct)
     }
 }
 

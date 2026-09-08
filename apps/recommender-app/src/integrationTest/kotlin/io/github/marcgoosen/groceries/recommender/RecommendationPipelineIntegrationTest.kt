@@ -5,7 +5,7 @@ import assertk.assertions.isEqualTo
 import com.github.avrokotlin.avro4k.ExperimentalAvro4kApi
 import com.github.avrokotlin.avro4k.kafka.confluent.ReflectAvro4kKafkaSerde
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG
-import io.github.marcgoosen.groceries.recommender.domain.ProductsWithProbability
+import io.github.marcgoosen.groceries.recommender.domain.RelatedProducts
 import io.github.marcgoosen.groceries.recommender.kafkastreams.AvroSerdes
 import io.github.marcgoosen.groceries.recommender.kafkastreams.Topic
 import io.github.marcgoosen.groceries.recommender.kafkastreams.TopicCreator
@@ -114,7 +114,7 @@ class RecommendationPipelineIntegrationTest {
         // When
         produce(order("target-1", milk))
 
-        assertThat(awaitRecommendation("target-1").productsWithProbabilities.map { it.product }.toSet())
+        assertThat(awaitRecommendation("target-1").relatedProducts.map { it.product }.toSet())
             .isEqualTo(setOf(bread, eggs))
     }
 
@@ -191,16 +191,16 @@ class RecommendationPipelineIntegrationTest {
         check(streams.state() == KafkaStreams.State.RUNNING) { "Streams did not start: ${streams.state()}" }
     }
 
-    private fun awaitRecommendation(orderId: OrderId): ProductsWithProbability {
+    private fun awaitRecommendation(orderId: OrderId): RelatedProducts {
         val properties = config.kafka.toProperties().apply {
             put(ConsumerConfig.GROUP_ID_CONFIG, "integration-$orderId")
             put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
         }
 
-        KafkaConsumer<OrderId, ProductsWithProbability>(
+        KafkaConsumer<OrderId, RelatedProducts>(
             properties,
             avroSerdes.string.deserializer(),
-            avroSerdes.create<ProductsWithProbability>().deserializer(),
+            avroSerdes.create<RelatedProducts>().deserializer(),
         ).use { consumer ->
             consumer.subscribe(listOf(topicNameBuilder.build(Topic.RELATED_PRODUCTS)))
             val deadline = System.currentTimeMillis() + 60_000

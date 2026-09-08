@@ -2,8 +2,8 @@ package io.github.marcgoosen.groceries.recommender.kafkastreams
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
-import io.github.marcgoosen.groceries.recommender.domain.ProductWithProbability
-import io.github.marcgoosen.groceries.recommender.domain.ProductsWithProbability
+import io.github.marcgoosen.groceries.recommender.domain.RelatedProduct
+import io.github.marcgoosen.groceries.recommender.domain.RelatedProducts
 import io.github.marcgoosen.groceries.recommender.order
 import io.github.marcgoosen.groceries.shared.domain.Order
 import io.github.marcgoosen.groceries.shared.domain.OrderId
@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test
 class TopologyBuilderTest : BaseTopologyTest() {
     private lateinit var orderInputTopic: TestInputTopic<OrderId, Order>
     private lateinit var productInputTopic: TestInputTopic<ProductId, Product>
-    private lateinit var outputTopic: TestOutputTopic<OrderId, ProductsWithProbability>
+    private lateinit var outputTopic: TestOutputTopic<OrderId, RelatedProducts>
 
     private val milk = Product("p1", "Milk", 2.0)
     private val bread = Product("p2", "Bread", 1.5)
@@ -44,7 +44,7 @@ class TopologyBuilderTest : BaseTopologyTest() {
         outputTopic = topologyTestDriver.createOutputTopic(
             Topic.RELATED_PRODUCTS.topicName,
             avroSerdes.string.deserializer(),
-            avroSerdes.create<ProductsWithProbability>().deserializer(),
+            avroSerdes.create<RelatedProducts>().deserializer(),
         )
 
         listOf(milk, bread, eggs, cheese, saffron).forEach { productInputTopic.pipeInput(it.productId, it) }
@@ -60,8 +60,8 @@ class TopologyBuilderTest : BaseTopologyTest() {
 
         assertThat(recommendationsFor("target-1")).isEqualTo(
             setOf(
-                ProductWithProbability(bread, 0.5),
-                ProductWithProbability(eggs, 0.5),
+                RelatedProduct(bread, 0.5),
+                RelatedProduct(eggs, 0.5),
             ),
         )
     }
@@ -79,8 +79,8 @@ class TopologyBuilderTest : BaseTopologyTest() {
             .isEqualTo(setOf(bread, eggs, cheese))
     }
 
-    private fun recommendationsFor(orderId: OrderId): Set<ProductWithProbability> =
-        outputTopic.readKeyValuesToMap()[orderId]?.productsWithProbabilities.orEmpty().toSet()
+    private fun recommendationsFor(orderId: OrderId): Set<RelatedProduct> =
+        outputTopic.readKeyValuesToMap()[orderId]?.relatedProducts.orEmpty().toSet()
 
     private fun pipeOrder(orderId: OrderId, vararg products: Product) {
         val order = faker.order().copy(

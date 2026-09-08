@@ -4,4 +4,4 @@ import io.github.marcgoosen.groceries.shared.domain.Product
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class ProductWithProbability(val product: Product, val probability: Double)
+data class RelatedProduct(val product: Product, val probability: Double)

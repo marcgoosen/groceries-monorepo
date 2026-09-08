@@ -10,18 +10,18 @@ import org.junit.jupiter.api.Test
 /**
  * Counts of what was bought alongside a product, kept in a changelog-backed store.
  */
-class CoOccurrenceTest {
+class AlsoBoughtCountTest {
     private val json = Json { prettyPrint = true }
 
-    private val coOccurrence = CoOccurrence(mapOf("p1" to 2, "p2" to 1))
+    private val alsoBought = AlsoBoughtCount(mapOf("p1" to 2, "p2" to 1))
 
-    private val empty = CoOccurrence()
+    private val empty = AlsoBoughtCount()
 
     @Test
-    fun `It should serialize a populated co-occurrence to JSON and read it back`() {
+    fun `It should serialize a populated also-bought to JSON and read it back`() {
         // Given
         // When
-        val serialized = json.encodeToString(coOccurrence)
+        val serialized = json.encodeToString(alsoBought)
 
         assertThat(serialized).isEqualTo(
             """
@@ -33,17 +33,17 @@ class CoOccurrenceTest {
             }
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString<CoOccurrence>(serialized)).isEqualTo(coOccurrence)
+        assertThat(json.decodeFromString<AlsoBoughtCount>(serialized)).isEqualTo(alsoBought)
     }
 
     @Test
-    fun `It should serialize a populated co-occurrence to Avro and read it back`() {
+    fun `It should serialize a populated also-bought to Avro and read it back`() {
         // Given
         // When
-        val serialized = Avro.encodeToByteArray(CoOccurrence.serializer(), coOccurrence)
+        val serialized = Avro.encodeToByteArray(AlsoBoughtCount.serializer(), alsoBought)
 
         assertThat(serialized.toHex()).isEqualTo("04047031040470320200")
-        assertThat(Avro.decodeFromByteArray(CoOccurrence.serializer(), serialized)).isEqualTo(coOccurrence)
+        assertThat(Avro.decodeFromByteArray(AlsoBoughtCount.serializer(), serialized)).isEqualTo(alsoBought)
     }
 
     @Test
@@ -57,17 +57,17 @@ class CoOccurrenceTest {
             {}
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString<CoOccurrence>(serialized)).isEqualTo(empty)
+        assertThat(json.decodeFromString<AlsoBoughtCount>(serialized)).isEqualTo(empty)
     }
 
     @Test
     fun `It should serialize its defaults to Avro and read it back`() {
         // Given
         // When
-        val serialized = Avro.encodeToByteArray(CoOccurrence.serializer(), empty)
+        val serialized = Avro.encodeToByteArray(AlsoBoughtCount.serializer(), empty)
 
         assertThat(serialized.toHex()).isEqualTo("00")
-        assertThat(Avro.decodeFromByteArray(CoOccurrence.serializer(), serialized)).isEqualTo(empty)
+        assertThat(Avro.decodeFromByteArray(AlsoBoughtCount.serializer(), serialized)).isEqualTo(empty)
     }
 }
 

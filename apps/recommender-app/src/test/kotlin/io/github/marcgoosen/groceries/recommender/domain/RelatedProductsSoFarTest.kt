@@ -11,18 +11,18 @@ import org.junit.jupiter.api.Test
 /**
  * The second fan-in aggregate. Both fields are defaulted, and the list holds nulls for unresolved products.
  */
-class ProductsWithProbabilityContextTest {
+class RelatedProductsSoFarTest {
     private val json = Json { prettyPrint = true }
 
-    private val context = ProductsWithProbabilityContext(
-        productsWithProbabilities = listOf(
-            ProductWithProbability(Product("p1", "Milk", 2.0), 0.5),
-            ProductWithProbability(Product("p2", "Bread", 1.5), 0.3),
+    private val context = RelatedProductsSoFar(
+        relatedProducts = listOf(
+            RelatedProduct(Product("p1", "Milk", 2.0), 0.5),
+            RelatedProduct(Product("p2", "Bread", 1.5), 0.3),
         ),
         expectedSize = 2,
     )
 
-    private val empty = ProductsWithProbabilityContext()
+    private val empty = RelatedProductsSoFar()
 
     @Test
     fun `It should serialize a populated aggregate to JSON and read it back`() {
@@ -33,7 +33,7 @@ class ProductsWithProbabilityContextTest {
         assertThat(serialized).isEqualTo(
             """
             {
-                "productsWithProbabilities": [
+                "relatedProducts": [
                     {
                         "product": {
                             "productId": "p1",
@@ -55,21 +55,21 @@ class ProductsWithProbabilityContextTest {
             }
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString<ProductsWithProbabilityContext>(serialized)).isEqualTo(context)
+        assertThat(json.decodeFromString<RelatedProductsSoFar>(serialized)).isEqualTo(context)
     }
 
     @Test
     fun `It should serialize a populated aggregate to Avro and read it back`() {
         // Given
         // When
-        val serialized = Avro.encodeToByteArray(ProductsWithProbabilityContext.serializer(), context)
+        val serialized = Avro.encodeToByteArray(RelatedProductsSoFar.serializer(), context)
 
         assertThat(
             serialized.toHex(),
         ).isEqualTo(
             "0402047031084d696c6b0000000000000040000000000000e03f020470320a4272656164000000000000f83f333333333333d33f0004",
         )
-        assertThat(Avro.decodeFromByteArray(ProductsWithProbabilityContext.serializer(), serialized)).isEqualTo(context)
+        assertThat(Avro.decodeFromByteArray(RelatedProductsSoFar.serializer(), serialized)).isEqualTo(context)
     }
 
     @Test
@@ -83,17 +83,17 @@ class ProductsWithProbabilityContextTest {
             {}
             """.trimIndent(),
         )
-        assertThat(json.decodeFromString<ProductsWithProbabilityContext>(serialized)).isEqualTo(empty)
+        assertThat(json.decodeFromString<RelatedProductsSoFar>(serialized)).isEqualTo(empty)
     }
 
     @Test
     fun `It should serialize its defaults to Avro and read it back`() {
         // Given
         // When
-        val serialized = Avro.encodeToByteArray(ProductsWithProbabilityContext.serializer(), empty)
+        val serialized = Avro.encodeToByteArray(RelatedProductsSoFar.serializer(), empty)
 
         assertThat(serialized.toHex()).isEqualTo("0000")
-        assertThat(Avro.decodeFromByteArray(ProductsWithProbabilityContext.serializer(), serialized)).isEqualTo(empty)
+        assertThat(Avro.decodeFromByteArray(RelatedProductsSoFar.serializer(), serialized)).isEqualTo(empty)
     }
 }
 

@@ -14,17 +14,17 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 private const val INPUT_TOPIC = "input-orders"
-private const val OUTPUT_TOPIC = "output-pairs"
+private const val OUTPUT_TOPIC = "output-exploded"
 
-class ToCoOccurrencePairsTest : BaseTopologyTest() {
+class ExplodeOrderByProductIdTest : BaseTopologyTest() {
     private lateinit var inputTopic: TestInputTopic<OrderId, Order>
-    private lateinit var outputTopic: TestOutputTopic<ProductId, ProductId>
+    private lateinit var outputTopic: TestOutputTopic<ProductId, Order>
 
     @BeforeEach
     fun onSetup() {
         setup {
             streamsBuilder.stream<OrderId, Order>(INPUT_TOPIC)
-                .toCoOccurrencePairs()
+                .explodeOrderByProductId()
                 .to(OUTPUT_TOPIC)
         }
 
@@ -37,18 +37,18 @@ class ToCoOccurrencePairsTest : BaseTopologyTest() {
         outputTopic = topologyTestDriver.createOutputTopic(
             OUTPUT_TOPIC,
             avroSerdes.string.deserializer(),
-            avroSerdes.string.deserializer(),
+            avroSerdes.create<Order>().deserializer(),
         )
     }
 
     @Test
-    fun `It should emit every ordered pair of products in the order`() {
+    fun `It should emit the whole order once per product it contains`() {
         // Given
         val order = faker.order().copy(
+            orderId = "o1",
             orderLines = listOf(
-                faker.orderLine().copy(productId = "product-1"),
-                faker.orderLine().copy(productId = "product-2"),
-                faker.orderLine().copy(productId = "product-3"),
+                faker.orderLine().copy(productId = "p1"),
+                faker.orderLine().copy(productId = "p2"),
             ),
         )
 
@@ -57,24 +57,20 @@ class ToCoOccurrencePairsTest : BaseTopologyTest() {
 
         assertThat(outputTopic.readKeyValuesToList()).isEqualTo(
             listOf(
-                KeyValue("product-1", "product-2"),
-                KeyValue("product-1", "product-3"),
-                KeyValue("product-2", "product-1"),
-                KeyValue("product-2", "product-3"),
-                KeyValue("product-3", "product-1"),
-                KeyValue("product-3", "product-2"),
+                KeyValue("p1", order),
+                KeyValue("p2", order),
             ),
         )
     }
 
     @Test
-    fun `It should emit no pairs for an order with a single product`() {
+    fun `It should emit nothing for an order without products`() {
         // Given
-        val order = faker.order().copy(orderLines = listOf(faker.orderLine().copy(productId = "product-1")))
+        val order = faker.order().copy(orderId = "o2", orderLines = emptyList())
 
         // When
         inputTopic.pipeInput(order.orderId, order)
 
-        assertThat(outputTopic.readKeyValuesToList()).isEqualTo(emptyList<KeyValue<ProductId, ProductId>>())
+        assertThat(outputTopic.readKeyValuesToList()).isEqualTo(emptyList<KeyValue<ProductId, Order>>())
     }
 }

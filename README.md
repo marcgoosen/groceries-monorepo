@@ -1,7 +1,7 @@
 # Groceries Monorepo — Kotlin Kafka Streams
 
 A real-time groceries recommendation engine built with Kotlin and Kafka Streams. It processes a stream of orders to
-find co-occurring products and produces "related products" suggestions per order.
+find products that are bought together and produces "related products" suggestions per order.
 
 ## Architecture
 
@@ -20,18 +20,18 @@ so the pipeline in `TopologyBuilder.build()` reads as the diagram below and ever
 
 ```mermaid
 flowchart TD
-    ORDERS([groceries.orders.v1]) --> PAIRS["toCoOccurrencePairs()<br/>every ordered pair of products"]
-    PAIRS --> COUNT["countCoOccurrences()<br/>KTable: productId → counts"]
+    ORDERS([groceries.orders.v1]) --> PAIRS["toProductPairs()<br/>every ordered pair of products"]
+    PAIRS --> COUNT["countAlsoBought()<br/>KTable: productId → counts"]
 
-    ORDERS --> EXPLODE["explodeByProductId()<br/>one record per ordered product"]
+    ORDERS --> EXPLODE["explodeOrderByProductId()<br/>one record per ordered product"]
     COUNT -.->|left join| JOIN
-    EXPLODE --> JOIN["joinWithCoOccurrences()<br/>attach what co-occurs with it"]
+    EXPLODE --> JOIN["joinWithAlsoBoughtCounts()<br/>attach what is bought with it"]
     JOIN --> REKEY["rekeyByOrderId()"]
     REKEY --> COLLECT["collectPerOrder()<br/>aggregate back per order"]
     COLLECT --> COMPLETE["onlyComplete()<br/>wait for every ordered product"]
-    COMPLETE --> ROLLUP["rollupToCoOccurrence()<br/>sum, minus what was ordered"]
-    ROLLUP --> DIST["toCoDistribution()<br/>counts → probabilities"]
-    DIST --> TOPN["selectTopN(3)"]
+    COMPLETE --> SUM["sumAlsoBought()<br/>sum, minus what was ordered"]
+    SUM --> PROBS["toAlsoBoughtProbabilities()<br/>counts → probabilities"]
+    PROBS --> TOPN["selectTopN(3)"]
     TOPN --> EXPLODE2["explodeByProductId()<br/>one record per candidate"]
 
     PRODUCTS([groceries.products.v1]) -.->|left join| JOIN2
@@ -122,8 +122,8 @@ Credentials are masked before the resolved configuration is logged at startup.
 
 **Completeness is tracked in the payload, not with windows.** Both fan-in aggregations emit on every update, so a
 downstream consumer would otherwise see partial recommendations. Rather than a window with an arbitrary grace period,
-each aggregate carries the count it expects (`CoOccurrencesWithContext` compares against the order's product count;
-`ProductsWithProbabilityContext` carries `expectedSize`) and `onlyComplete()` passes only the final emission. The
+each aggregate carries the count it expects (`AlsoBoughtSoFar` compares against the order's product count;
+`RelatedProductsSoFar` carries `expectedSize`) and `onlyComplete()` passes only the final emission. The
 trade-off: it is exact and needs no timers, but it depends on every fan-out record arriving — a permanently lost
 record leaves an aggregate that never completes.
 
@@ -132,7 +132,7 @@ nothing, since pods start with an empty disk either way — it is there for loca
 not pick up the state stores the previous one left behind. On a StatefulSet with a persistent volume the line would
 have to go, because it would force a full changelog restore on every restart.
 
-**Co-occurrence state is unbounded.** `countCoOccurrences()` keeps a `KTable` of product → co-occurring product
+**Also-bought state is unbounded.** `countAlsoBought()` keeps a `KTable` of product → also-bought product
 counts that grows with the catalogue and never expires. For a fixed catalogue this is what you want; for a long-lived
 deployment it needs either a windowed variant or periodic tombstoning, and the RocksDB bounds in
 `BoundedMemoryRocksDBConfig` only cap memory, not disk.
