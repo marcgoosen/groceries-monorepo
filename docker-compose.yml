@@ -37,6 +37,20 @@ services:
       SCHEMA_REGISTRY_HOST_NAME: "schema-registry"
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "broker:29092"
       SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
+    # Reaching this means Kafka is reachable too, since the registry stores its schemas there. It is what the
+    # app waits for: producing before the registry can register a schema blocks the app on startup.
+    healthcheck:
+      # The image ships neither curl nor wget, but it does have python3. Hitting /subjects rather than just
+      # the port matters: the listener opens before the registry can actually serve.
+      test:
+        - "CMD"
+        - "python3"
+        - "-c"
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8081/subjects', timeout=3)"
+      interval: "5s"
+      timeout: "5s"
+      retries: 30
+      start_period: "10s"
 
   kafka-ui:
     container_name: "kafka-ui"
@@ -54,3 +68,21 @@ services:
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: "first"
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: "http://connect:8083"
       DYNAMIC_CONFIG_ENABLED: "true"
+
+  # Not started by a plain `docker compose up` — that stays infrastructure only, so it does not clash with
+  # `./gradlew run`. Bring it up with `docker compose --profile app up -d`.
+  recommender:
+    profiles: ["app"]
+    container_name: "recommender"
+    image: "${RECOMMENDER_IMAGE:-recommender-app:latest}"
+    depends_on:
+      schema-registry:
+        condition: "service_healthy"
+    ports:
+      # 8080 is heavily contended; override RECOMMENDER_PORT if something else already has it.
+      - "${RECOMMENDER_PORT:-8080}:8080"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: "broker:29092"
+      KAFKA_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
+      MAIN_CREATE_TOPICS: "true"
+      MAIN_START_SIMULATOR: "true"
