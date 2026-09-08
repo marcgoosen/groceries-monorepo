@@ -46,10 +46,14 @@ class HealthTest {
             assertThat(response.bodyAsText()).isEqualTo("""{"status":"DOWN"}""")
         }
 
-    @Test
-    fun `It should report the service alive while the streams have not shut down`() = withHealth(
-        KafkaStreams.State.REBALANCING,
-    ) { client ->
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(
+        value = KafkaStreams.State::class,
+        names = ["CREATED", "REBALANCING", "RUNNING", "PENDING_SHUTDOWN"],
+    )
+    fun `It should report the service alive while the streams are starting, running or stopping gracefully`(
+        state: KafkaStreams.State,
+    ) = withHealth(state) { client ->
         // Given
         // When
         val response = client.get("/health/liveness")
@@ -58,8 +62,8 @@ class HealthTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @EnumSource(value = KafkaStreams.State::class, names = ["NOT_RUNNING", "ERROR"])
-    fun `It should report the service dead once the streams have shut down`(state: KafkaStreams.State) =
+    @EnumSource(value = KafkaStreams.State::class, names = ["PENDING_ERROR", "NOT_RUNNING", "ERROR"])
+    fun `It should report the service dead once the streams are failing or have shut down`(state: KafkaStreams.State) =
         withHealth(state) { client ->
             // Given
             // When

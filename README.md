@@ -149,6 +149,12 @@ Turning on `exactly_once_v2` is a one-line change with a real latency cost.
 is trivially true locally; a real deployment must give `orders`, `products` and the repartition topics the same
 partition count.
 
+**A failing stream thread takes the pod with it.** The uncaught-exception handler returns `SHUTDOWN_CLIENT`, so the
+client stops rather than limping on with fewer threads, and `/health/liveness` reports DOWN from `PENDING_ERROR`
+onwards rather than only once the client has finished dying — otherwise a teardown that hangs keeps reporting a
+healthy pod. A state listener logs every transition and publishes the current state as the `kafka.streams.state`
+gauge, so a client stuck outside RUNNING can be alerted on.
+
 **No dead-letter path.** A record that fails to deserialize will kill the stream thread rather than being diverted. A
 `DeserializationExceptionHandler` plus a DLQ topic is the obvious next step.
 
@@ -157,7 +163,6 @@ partition count.
 - Docker image and Kubernetes manifests
 - The simulator extracted into its own app
 - A separate Kafka initializer that owns shared topics and schemas, failing early on incompatible changes
-- `KafkaStreams` state listener and uncaught-exception handler wired to the health endpoints
 
 ## License
 

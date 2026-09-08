@@ -2,6 +2,7 @@ package io.github.marcgoosen.groceries.recommender
 
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
+import io.github.marcgoosen.groceries.recommender.kafkastreams.superviseWith
 import io.github.marcgoosen.groceries.recommender.routing.configureHealth
 import io.github.marcgoosen.groceries.recommender.routing.configurePrometheus
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -37,6 +38,7 @@ fun main(): Unit = with(Dependencies) {
     // A no-op on Kubernetes, where pods start with an empty disk anyway. It is here so that a local run starts from
     // a clean set of state stores instead of whatever the previous run left behind.
     streams.cleanUp()
+    streams.superviseWith(prometheusRegistry)
     streams.start()
 
     val engine =
