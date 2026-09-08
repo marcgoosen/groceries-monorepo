@@ -104,7 +104,9 @@ docker compose --profile app down -v
 ```
 
 `docker compose up -d` on its own still starts only the infrastructure, so it does not clash with
-`./gradlew run`. The app service sits behind the `app` profile.
+`./gradlew run`. The app service sits behind the `app` profile, and waits for Schema Registry to report
+healthy before starting — producing before a schema can be registered blocks the app on startup. If something
+already owns port 8080, set `RECOMMENDER_PORT` and point the test at it with `RECOMMENDER_URL`.
 
 Merges to `main` publish to `ghcr.io/marcgoosen/recommender-app`, tagged `latest` and `sha-<short>`:
 

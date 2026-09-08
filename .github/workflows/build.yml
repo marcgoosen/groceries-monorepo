@@ -49,9 +49,11 @@ jobs:
       - name: "End-to-end test against the packaged image"
         run: "./gradlew e2eTest"
 
-      - name: "Show the app logs if the end-to-end test failed"
+      - name: "Show the stack state and app logs if the end-to-end test failed"
         if: "failure()"
-        run: "docker compose --profile app logs recommender"
+        run: |
+          docker compose --profile app ps
+          docker compose --profile app logs --no-color recommender
 
       - name: "Stop the compose stack"
         if: "always()"
